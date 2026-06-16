@@ -36,7 +36,7 @@ namespace AutoCadPlugin.Commands
                 var circle = new Circle(
                     result.Value,
                     Vector3d.ZAxis,
-                    10);
+                    100);
 
                 ms.AppendEntity(circle);
                 tr.AddNewlyCreatedDBObject(circle, true);

@@ -1,37 +1,41 @@
 ﻿using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.Runtime;
-using Demo.Models;
-using Demo.Services;
 using Demo.ui;
-using System.Windows.Forms;
 
 namespace AutoCadPlugin.Commands
 {
     public class PtCommands
     {
+        private static PtMainForm _form;
+
         [CommandMethod("PLACEPT")]
         public void PlacePt()
         {
-            var doc = Autodesk.AutoCAD.ApplicationServices.Application.DocumentManager.MdiActiveDocument;
+            ShowMainForm();
+        }
+
+        [CommandMethod("PTPANEL")]
+        public void ShowPanel()
+        {
+            ShowMainForm();
+        }
+
+        private static void ShowMainForm()
+        {
+            var doc = Application.DocumentManager.MdiActiveDocument;
             if (doc == null)
                 return;
 
-            PlaceDeviceRequest request;
-            using (var form = new ContextForm())
+            if (_form == null || _form.IsDisposed)
             {
-                if (form.ShowDialog() != DialogResult.OK)
-                    return;
-
-                request = form.SelectedDevice;
+                _form = new PtMainForm();
+                Application.ShowModelessDialog(_form);
             }
-
-            if (request == null)
-                return;
-
-            var ptObject = PtLayoutManager.AddDevice(doc.Database, request);
-
-            doc.Editor.WriteMessage(
-                $"\nОбъект {ptObject.Label} добавлен в колонку {ptObject.ColumnIndex}.");
+            else
+            {
+                _form.Show();
+                _form.BringToFront();
+            }
         }
     }
 }

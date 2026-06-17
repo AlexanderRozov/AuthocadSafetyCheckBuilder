@@ -70,16 +70,25 @@
     <Compile Include="Models\PtObject.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="PtCommands.cs" />
+    <Compile Include="Models\BlockTemplate.cs" />
+    <Compile Include="Models\PtTableSession.cs" />
+    <Compile Include="Models\PtObjectBlock.cs" />
+    <Compile Include="Services\BlockCatalog.cs" />
     <Compile Include="Services\DeviceCatalog.cs" />
+    <Compile Include="Models\PtObjectLink.cs" />
+    <Compile Include="Services\DocumentLockHelper.cs" />
+    <Compile Include="Services\ObjectSelectionService.cs" />
+    <Compile Include="Services\PtBlockRepository.cs" />
     <Compile Include="Services\DrawingService.cs" />
     <Compile Include="Services\PtLayoutConstants.cs" />
     <Compile Include="Services\PtLayoutManager.cs" />
     <Compile Include="Services\PtObjectRepository.cs" />
-    <Compile Include="ui\ContextForm.cs">
+    <Compile Include="Services\PtTableRepository.cs" />
+    <Compile Include="ui\PtMainForm.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="ui\ContextForm.Designer.cs">
-      <DependentUpon>ContextForm.cs</DependentUpon>
+    <Compile Include="ui\PtMainForm.Designer.cs">
+      <DependentUpon>PtMainForm.cs</DependentUpon>
     </Compile>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
@@ -91,8 +100,8 @@
       <DependentUpon>Resources.resx</DependentUpon>
       <DesignTime>True</DesignTime>
     </Compile>
-    <EmbeddedResource Include="ui\ContextForm.resx">
-      <DependentUpon>ContextForm.cs</DependentUpon>
+    <EmbeddedResource Include="ui\PtMainForm.resx">
+      <DependentUpon>PtMainForm.cs</DependentUpon>
     </EmbeddedResource>
     <None Include="database\data.json" />
     <None Include="Properties\Settings.settings">

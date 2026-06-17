@@ -1,23 +1,25 @@
 using Demo.Models;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Demo.Services
 {
     public static class PtObjectRepository
     {
         private static readonly List<PtObject> Objects = new List<PtObject>();
+        private static readonly List<PtObjectLink> Links = new List<PtObjectLink>();
         private static readonly Dictionary<string, int> NumberCounters = new Dictionary<string, int>();
 
         public static IReadOnlyList<PtObject> All => Objects;
 
-        public static string GetSuggestedNumber(string code)
-        {
-            if (!NumberCounters.ContainsKey(code))
-                return "001";
+        public static IReadOnlyList<PtObjectLink> AllLinks => Links;
 
-            return NumberCounters[code].ToString("D3");
-        }
+        public static IEnumerable<PtObject> GetByTable(Guid tableId) =>
+            Objects.Where(o => o.TableId == tableId).OrderBy(o => o.ColumnIndex);
+
+        public static PtObject Get(Guid id) =>
+            Objects.FirstOrDefault(o => o.InstanceId == id);
 
         public static string GetNextNumber(string code)
         {
@@ -29,21 +31,58 @@ namespace Demo.Services
             return number.ToString("D3");
         }
 
-        public static void ReserveNumber(string code, string number)
+        public static string PeekNextNumber(string code)
         {
-            if (!int.TryParse(number, out var parsed))
-                return;
+            if (!NumberCounters.ContainsKey(code))
+                return "001";
 
-            if (!NumberCounters.ContainsKey(code) || NumberCounters[code] <= parsed)
-                NumberCounters[code] = parsed + 1;
+            return NumberCounters[code].ToString("D3");
         }
 
         public static void Add(PtObject ptObject)
         {
             Objects.Add(ptObject);
-            ReserveNumber(ptObject.Code, ptObject.Number);
         }
 
-        public static int DeviceCount => Objects.Count;
+        public static PtObjectLink AddLink(Guid tableId, Guid fromId, Guid toId)
+        {
+            var link = new PtObjectLink
+            {
+                Id = Guid.NewGuid(),
+                TableId = tableId,
+                FromObjectId = fromId,
+                ToObjectId = toId
+            };
+            Links.Add(link);
+
+            var child = Get(toId);
+            if (child != null)
+                child.ParentObjectId = fromId;
+
+            return link;
+        }
+
+        public static void RemoveLinksForObject(Guid objectId)
+        {
+            Links.RemoveAll(l => l.FromObjectId == objectId || l.ToObjectId == objectId);
+        }
+
+        public static void Remove(PtObject obj)
+        {
+            if (obj == null)
+                return;
+
+            RemoveLinksForObject(obj.InstanceId);
+            Objects.Remove(obj);
+        }
+
+        public static string GetBlockName(PtObject obj)
+        {
+            if (!obj.BlockGroupId.HasValue)
+                return string.Empty;
+
+            var block = PtBlockRepository.Get(obj.BlockGroupId.Value);
+            return block?.Name ?? string.Empty;
+        }
     }
 }

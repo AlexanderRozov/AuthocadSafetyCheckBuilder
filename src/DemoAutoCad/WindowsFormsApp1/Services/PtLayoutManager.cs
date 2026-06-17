@@ -6,12 +6,10 @@ namespace Demo.Services
 {
     public static class PtLayoutManager
     {
-        private static ObjectId _tableId = ObjectId.Null;
-        private static ObjectId _busLineId = ObjectId.Null;
-        private static int _deviceCount;
-
-        public static PtObject AddDevice(Database db, PlaceDeviceRequest request)
+        public static PtTableSession CreateTableAtPoint(Database db, Point3d origin)
         {
+            var session = PtTableRepository.Create(null);
+
             using (var tr = db.TransactionManager.StartTransaction())
             {
                 DrawingService.EnsureLayers(tr, db);
@@ -21,68 +19,186 @@ namespace Demo.Services
                     bt[BlockTableRecord.ModelSpace],
                     OpenMode.ForWrite);
 
-                _deviceCount++;
-                var dataColumnIndex = _deviceCount;
-                var columnNumber = PtLayoutConstants.FirstColumnNumber + _deviceCount - 1;
-                var fdNumber = PtLayoutConstants.FirstFdNumber + _deviceCount - 1;
+                var table = CreateEmptyTable(tr, db, origin);
+                ms.AppendEntity(table);
+                tr.AddNewlyCreatedDBObject(table, true);
 
-                if (_tableId.IsNull)
-                    CreateInitialTable(tr, db, ms, request, columnNumber, fdNumber);
+                session.Origin = origin;
+                session.TableId = table.ObjectId;
+                session.DeviceCount = 0;
+
+                tr.Commit();
+            }
+
+            return session;
+        }
+
+        public static PtObject AddDevice(Database db, PlaceDeviceRequest request)
+        {
+            var session = PtTableRepository.Get(request.TableId);
+            if (session == null)
+                throw new System.InvalidOperationException("Таблица не найдена.");
+
+            using (var tr = db.TransactionManager.StartTransaction())
+            {
+                DrawingService.EnsureLayers(tr, db);
+
+                var bt = (BlockTable)tr.GetObject(db.BlockTableId, OpenMode.ForRead);
+                var ms = (BlockTableRecord)tr.GetObject(
+                    bt[BlockTableRecord.ModelSpace],
+                    OpenMode.ForWrite);
+
+                session.DeviceCount++;
+                var dataColumnIndex = session.DeviceCount;
+                var columnNumber = PtLayoutConstants.FirstColumnNumber + session.DeviceCount - 1;
+                var fdNumber = PtLayoutConstants.FirstFdNumber + session.DeviceCount - 1;
+
+                var table = (Table)tr.GetObject(session.TableId, OpenMode.ForWrite);
+
+                if (table.Columns.Count < 2)
+                    AddFirstDataColumn(table, request, columnNumber, fdNumber);
                 else
-                    AppendTableColumn(tr, request, columnNumber, fdNumber);
+                    AppendTableColumn(table, request, columnNumber, fdNumber);
 
-                var centerX = GetDataColumnCenterX(dataColumnIndex);
-                var center = new Point3d(centerX, PtLayoutConstants.BusLineY, 0);
+                var center = request.InsertionPoint;
+                var ptObject = DrawingService.DrawDevice(
+                    tr, db, ms, request, center, dataColumnIndex, session.Id);
 
-                UpdateBusLineGeometry(tr, ms, dataColumnIndex);
+                ptObject.ColumnNumber = columnNumber;
+                ptObject.FdCode = $"FD-{fdNumber:D4}";
+                ptObject.JsCode = $"JS05-UC-{1000 + columnNumber}A";
+                ptObject.TableId = session.Id;
+                ptObject.ParentObjectId = request.ParentObjectId;
+                ptObject.BlockGroupId = request.BlockGroupId;
 
-                var ptObject = DrawingService.DrawDevice(tr, ms, request, center, dataColumnIndex);
                 PtObjectRepository.Add(ptObject);
+
+                if (request.ParentObjectId.HasValue)
+                {
+                    var link = PtObjectRepository.AddLink(
+                        session.Id,
+                        request.ParentObjectId.Value,
+                        ptObject.InstanceId);
+
+                    var parent = PtObjectRepository.Get(request.ParentObjectId.Value);
+                    if (parent != null)
+                    {
+                        link.ArrowId = DrawingService.DrawArrow(
+                            tr, ms, parent.Center, ptObject.Center);
+                    }
+                }
 
                 tr.Commit();
                 return ptObject;
             }
         }
 
-        private static void CreateInitialTable(
-            Transaction tr,
-            Database db,
-            BlockTableRecord ms,
-            PlaceDeviceRequest request,
-            int columnNumber,
-            int fdNumber)
+        public static void DeleteObject(Database db, PtObject obj)
+        {
+            var session = PtTableRepository.Get(obj.TableId);
+            if (session == null)
+                return;
+
+            using (var tr = db.TransactionManager.StartTransaction())
+            {
+                DrawingService.EraseObject(tr, obj);
+
+                if (!session.TableId.IsNull)
+                {
+                    var table = (Table)tr.GetObject(session.TableId, OpenMode.ForWrite);
+                    var col = obj.ColumnIndex;
+                    if (col < table.Columns.Count)
+                    {
+                        table.Cells[0, col].TextString = string.Empty;
+                        table.Cells[1, col].TextString = string.Empty;
+                        table.Cells[2, col].TextString = string.Empty;
+                        table.Cells[3, col].TextString = string.Empty;
+                        table.Cells[4, col].TextString = string.Empty;
+                        table.Cells[5, col].TextString = string.Empty;
+                        if (table.Rows.Count > 6)
+                            table.Cells[6, col].TextString = string.Empty;
+                    }
+                }
+
+                tr.Commit();
+            }
+
+            PtObjectRepository.Remove(obj);
+        }
+
+        public static void SyncObjectToDrawing(Database db, PtObject obj)
+        {
+            var session = PtTableRepository.Get(obj.TableId);
+            if (session == null || session.TableId.IsNull)
+                return;
+
+            using (var tr = db.TransactionManager.StartTransaction())
+            {
+                var table = (Table)tr.GetObject(session.TableId, OpenMode.ForWrite);
+                var col = obj.ColumnIndex;
+                if (col < table.Columns.Count)
+                {
+                    table.Cells[0, col].TextString = obj.ColumnNumber.ToString();
+                    table.Cells[1, col].TextString = obj.FdCode;
+                    table.Cells[2, col].TextString = obj.JsCode;
+                    table.Cells[3, col].TextString = obj.Code;
+                    table.Cells[4, col].TextString = obj.Number;
+                    table.Cells[5, col].TextString = obj.FullName;
+                    if (table.Rows.Count > 6)
+                        table.Cells[6, col].TextString = PtObjectRepository.GetBlockName(obj);
+                }
+
+                if (!obj.LabelTextId.IsNull)
+                {
+                    var label = (MText)tr.GetObject(obj.LabelTextId, OpenMode.ForWrite);
+                    label.Contents = obj.Label;
+                    label.TextHeight = obj.FontSize;
+                }
+
+                if (!obj.IdTextId.IsNull)
+                {
+                    var idText = (MText)tr.GetObject(obj.IdTextId, OpenMode.ForWrite);
+                    idText.Contents = $"*-{obj.Code}-{obj.Number}";
+                    idText.TextHeight = obj.FontSize;
+                }
+
+                tr.Commit();
+            }
+        }
+
+        private static Table CreateEmptyTable(Transaction tr, Database db, Point3d origin)
         {
             var table = new Table();
             table.SetDatabaseDefaults(db);
             table.TableStyle = db.Tablestyle;
             table.Layer = PtLayoutConstants.LayerTable;
-            table.Position = new Point3d(
-                PtLayoutConstants.TableOriginX,
-                PtLayoutConstants.TableOriginY,
-                0);
+            table.Position = origin;
+            table.SetSize(PtLayoutConstants.TableRowCount, 1);
 
-            table.SetSize(PtLayoutConstants.TableRowCount, 2);
             for (var row = 0; row < PtLayoutConstants.TableRowCount; row++)
                 table.Rows[row].Height = PtLayoutConstants.RowHeight;
 
             table.Columns[0].Width = PtLayoutConstants.LabelColumnWidth;
-            table.Columns[1].Width = PtLayoutConstants.DataColumnWidth;
-
             SetLabelCells(table);
-            FillDataColumn(table, 1, request, columnNumber, fdNumber);
-
-            ms.AppendEntity(table);
-            tr.AddNewlyCreatedDBObject(table, true);
-            _tableId = table.ObjectId;
+            return table;
         }
 
-        private static void AppendTableColumn(
-            Transaction tr,
+        private static void AddFirstDataColumn(
+            Table table,
             PlaceDeviceRequest request,
             int columnNumber,
             int fdNumber)
         {
-            var table = (Table)tr.GetObject(_tableId, OpenMode.ForWrite);
+            table.InsertColumns(1, PtLayoutConstants.DataColumnWidth, 1);
+            FillDataColumn(table, 1, request, columnNumber, fdNumber);
+        }
+
+        private static void AppendTableColumn(
+            Table table,
+            PlaceDeviceRequest request,
+            int columnNumber,
+            int fdNumber)
+        {
             var newColIndex = table.Columns.Count;
             table.InsertColumns(newColIndex, PtLayoutConstants.DataColumnWidth, 1);
             FillDataColumn(table, newColIndex, request, columnNumber, fdNumber);
@@ -96,6 +212,7 @@ namespace Demo.Services
             table.Cells[3, 0].TextString = "Код";
             table.Cells[4, 0].TextString = "Номер";
             table.Cells[5, 0].TextString = "Наименование";
+            table.Cells[6, 0].TextString = "Блок";
         }
 
         private static void FillDataColumn(
@@ -111,29 +228,12 @@ namespace Demo.Services
             table.Cells[3, col].TextString = request.DeviceType.Code;
             table.Cells[4, col].TextString = request.Number;
             table.Cells[5, col].TextString = request.DeviceType.Name;
-        }
-
-        private static double GetDataColumnCenterX(int dataColumnIndex)
-        {
-            return PtLayoutConstants.TableOriginX
-                + PtLayoutConstants.LabelColumnWidth
-                + (dataColumnIndex - 0.5) * PtLayoutConstants.DataColumnWidth;
-        }
-
-        private static void UpdateBusLineGeometry(Transaction tr, BlockTableRecord ms, int dataColumnCount)
-        {
-            var startX = GetDataColumnCenterX(1);
-            var endX = GetDataColumnCenterX(dataColumnCount) + PtLayoutConstants.BusLineExtension;
-            var start = new Point3d(startX, PtLayoutConstants.BusLineY, 0);
-            var end = new Point3d(endX, PtLayoutConstants.BusLineY, 0);
-
-            if (_busLineId.IsNull)
+            if (table.Rows.Count > 6)
             {
-                _busLineId = DrawingService.DrawBusLine(tr, ms, start, end);
-            }
-            else
-            {
-                DrawingService.UpdateBusLine(tr, _busLineId, start, end);
+                var blockName = request.BlockGroupId.HasValue
+                    ? PtBlockRepository.Get(request.BlockGroupId.Value)?.Name ?? string.Empty
+                    : string.Empty;
+                table.Cells[6, col].TextString = blockName;
             }
         }
     }

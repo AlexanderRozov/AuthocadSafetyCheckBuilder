@@ -1,5 +1,6 @@
 ﻿using Autodesk.AutoCAD.Runtime;
 
+[assembly: ExtensionApplication(typeof(AutoCadPlugin.PluginEntry))]
 [assembly: CommandClass(typeof(AutoCadPlugin.Commands.PtCommands))]
 
 namespace AutoCadPlugin

@@ -1,8 +1,9 @@
 ﻿using Autodesk.AutoCAD.ApplicationServices;
-using Autodesk.AutoCAD.DatabaseServices;
-using Autodesk.AutoCAD.EditorInput;
-using Autodesk.AutoCAD.Geometry;
 using Autodesk.AutoCAD.Runtime;
+using Demo.Models;
+using Demo.Services;
+using Demo.ui;
+using System.Windows.Forms;
 
 namespace AutoCadPlugin.Commands
 {
@@ -11,38 +12,26 @@ namespace AutoCadPlugin.Commands
         [CommandMethod("PLACEPT")]
         public void PlacePt()
         {
-            var doc = Application.DocumentManager.MdiActiveDocument;
-            var db = doc.Database;
-            var ed = doc.Editor;
-
-            var result = ed.GetPoint(
-                "\nУкажите точку вставки:");
-
-            if (result.Status != PromptStatus.OK)
+            var doc = Autodesk.AutoCAD.ApplicationServices.Application.DocumentManager.MdiActiveDocument;
+            if (doc == null)
                 return;
 
-            using (var tr = db.TransactionManager.StartTransaction())
+            PlaceDeviceRequest request;
+            using (var form = new ContextForm())
             {
-                var bt = (BlockTable)
-                    tr.GetObject(
-                        db.BlockTableId,
-                        OpenMode.ForRead);
+                if (form.ShowDialog() != DialogResult.OK)
+                    return;
 
-                var ms = (BlockTableRecord)
-                    tr.GetObject(
-                        bt[BlockTableRecord.ModelSpace],
-                        OpenMode.ForWrite);
-
-                var circle = new Circle(
-                    result.Value,
-                    Vector3d.ZAxis,
-                    100);
-
-                ms.AppendEntity(circle);
-                tr.AddNewlyCreatedDBObject(circle, true);
-
-                tr.Commit();
+                request = form.SelectedDevice;
             }
+
+            if (request == null)
+                return;
+
+            var ptObject = PtLayoutManager.AddDevice(doc.Database, request);
+
+            doc.Editor.WriteMessage(
+                $"\nОбъект {ptObject.Label} добавлен в колонку {ptObject.ColumnIndex}.");
         }
     }
 }

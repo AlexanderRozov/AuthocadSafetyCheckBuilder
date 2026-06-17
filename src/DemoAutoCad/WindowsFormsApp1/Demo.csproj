@@ -65,9 +65,16 @@
   <ItemGroup>
     <Compile Include="AutoCadPlugin.cs" />
     <Compile Include="ContextMenuManager.cs" />
+    <Compile Include="Models\DeviceType.cs" />
+    <Compile Include="Models\PlaceDeviceRequest.cs" />
+    <Compile Include="Models\PtObject.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="PtCommands.cs" />
-    <Compile Include="ptObject.cs" />
+    <Compile Include="Services\DeviceCatalog.cs" />
+    <Compile Include="Services\DrawingService.cs" />
+    <Compile Include="Services\PtLayoutConstants.cs" />
+    <Compile Include="Services\PtLayoutManager.cs" />
+    <Compile Include="Services\PtObjectRepository.cs" />
     <Compile Include="ui\ContextForm.cs">
       <SubType>Form</SubType>
     </Compile>

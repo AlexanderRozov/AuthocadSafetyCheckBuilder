@@ -7,12 +7,17 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Media;
 
 namespace Demo.ui
 {
     public partial class PtMainWindow : Window
     {
         private bool _suppressTreeSelect;
+        private Point _treeDragStart;
+        private TreeViewItem _draggedTreeNode;
+        private const string TreeDragFormat = "PtTreeObject";
 
         public PtMainWindow()
         {
@@ -367,6 +372,225 @@ namespace Demo.ui
 
             ObjectSelectionService.ClearSelection();
             RefreshTables();
+        }
+
+        private void BtnTreeMoveUp_OnClick(object sender, RoutedEventArgs e) =>
+            MoveSelectedTreeNode(-1);
+
+        private void BtnTreeMoveDown_OnClick(object sender, RoutedEventArgs e) =>
+            MoveSelectedTreeNode(1);
+
+        private void TreeObjects_OnPreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            _treeDragStart = e.GetPosition(null);
+            _draggedTreeNode = GetTreeViewItemFromSource(e.OriginalSource as DependencyObject);
+        }
+
+        private void TreeObjects_OnPreviewMouseMove(object sender, MouseEventArgs e)
+        {
+            if (e.LeftButton != MouseButtonState.Pressed || _draggedTreeNode == null)
+                return;
+
+            var pos = e.GetPosition(null);
+            if (Math.Abs(pos.X - _treeDragStart.X) < SystemParameters.MinimumHorizontalDragDistance &&
+                Math.Abs(pos.Y - _treeDragStart.Y) < SystemParameters.MinimumVerticalDragDistance)
+                return;
+
+            if (!IsObjectTreeNode(_draggedTreeNode))
+                return;
+
+            var data = new DataObject(TreeDragFormat, _draggedTreeNode);
+            DragDrop.DoDragDrop(treeObjects, data, DragDropEffects.Move);
+        }
+
+        private void TreeObjects_OnDragOver(object sender, DragEventArgs e)
+        {
+            if (!e.Data.GetDataPresent(TreeDragFormat))
+            {
+                e.Effects = DragDropEffects.None;
+                e.Handled = true;
+                return;
+            }
+
+            var dragged = e.Data.GetData(TreeDragFormat) as TreeViewItem;
+            var target = GetTreeViewItemFromSource(e.OriginalSource as DependencyObject);
+            if (dragged == null || target == null || dragged == target || IsDescendant(dragged, target))
+            {
+                e.Effects = DragDropEffects.None;
+                e.Handled = true;
+                return;
+            }
+
+            e.Effects = DragDropEffects.Move;
+            e.Handled = true;
+        }
+
+        private void TreeObjects_OnDrop(object sender, DragEventArgs e)
+        {
+            if (!e.Data.GetDataPresent(TreeDragFormat))
+                return;
+
+            var dragged = e.Data.GetData(TreeDragFormat) as TreeViewItem;
+            var target = GetTreeViewItemFromSource(e.OriginalSource as DependencyObject);
+            if (dragged == null || target == null || dragged == target || IsDescendant(dragged, target))
+                return;
+
+            if (!TryMoveTreeNode(dragged, target))
+                return;
+
+            e.Handled = true;
+            ApplyTreeOrderToTable();
+            RefreshDevicesGrid();
+        }
+
+        private void MoveSelectedTreeNode(int direction)
+        {
+            if (!(treeObjects.SelectedItem is TreeViewItem node) || !IsObjectTreeNode(node))
+                return;
+
+            var parent = ItemsControl.ItemsControlFromItemContainer(node);
+            if (parent == null)
+                return;
+
+            var index = parent.Items.IndexOf(node);
+            var newIndex = index + direction;
+            if (newIndex < 0 || newIndex >= parent.Items.Count)
+                return;
+
+            parent.Items.Remove(node);
+            parent.Items.Insert(newIndex, node);
+            node.IsSelected = true;
+            node.Focus();
+
+            ApplyTreeOrderToTable();
+            RefreshDevicesGrid();
+        }
+
+        private bool TryMoveTreeNode(TreeViewItem dragged, TreeViewItem target)
+        {
+            if (!IsObjectTreeNode(dragged))
+                return false;
+
+            var draggedObj = GetObjectFromTreeNode(dragged);
+            if (draggedObj == null)
+                return false;
+
+            var draggedParent = ItemsControl.ItemsControlFromItemContainer(dragged);
+            draggedParent?.Items.Remove(dragged);
+
+            if (IsObjectTreeNode(target))
+            {
+                var targetParent = ItemsControl.ItemsControlFromItemContainer(target);
+                if (targetParent == null)
+                    return false;
+
+                var targetIndex = targetParent.Items.IndexOf(target);
+                targetParent.Items.Insert(targetIndex, dragged);
+                draggedObj.BlockGroupId = GetBlockIdFromContainer(targetParent);
+                draggedObj.ParentObjectId = null;
+            }
+            else if (IsBlockTreeNode(target))
+            {
+                target.Items.Add(dragged);
+                target.IsExpanded = true;
+                if (target.Tag is Guid blockId)
+                    draggedObj.BlockGroupId = blockId;
+                draggedObj.ParentObjectId = null;
+            }
+            else if (IsTableRootNode(target))
+            {
+                target.Items.Add(dragged);
+                draggedObj.BlockGroupId = null;
+                draggedObj.ParentObjectId = null;
+            }
+            else
+            {
+                return false;
+            }
+
+            dragged.IsSelected = true;
+            return true;
+        }
+
+        private void ApplyTreeOrderToTable()
+        {
+            var table = CurrentEditTable ?? CurrentTable;
+            if (table == null)
+                return;
+
+            var order = CollectObjectOrderFromTree();
+            if (order.Count == 0)
+                return;
+
+            PtObjectRepository.SetColumnOrder(table.Id, order);
+
+            DocumentLockHelper.Run((lockedDoc, db) =>
+            {
+                PtLayoutManager.SyncTableColumnOrder(db, table.Id);
+                lockedDoc.Editor.Regen();
+            });
+        }
+
+        private List<Guid> CollectObjectOrderFromTree()
+        {
+            var result = new List<Guid>();
+            if (treeObjects.Items.Count > 0 && treeObjects.Items[0] is TreeViewItem root)
+                CollectObjectOrder(root, result);
+            return result;
+        }
+
+        private static void CollectObjectOrder(TreeViewItem node, ICollection<Guid> result)
+        {
+            foreach (TreeViewItem child in node.Items)
+            {
+                if (IsObjectTreeNode(child))
+                {
+                    result.Add((Guid)child.Tag);
+                    CollectObjectOrder(child, result);
+                }
+                else if (IsBlockTreeNode(child) || IsTableRootNode(child))
+                    CollectObjectOrder(child, result);
+            }
+        }
+
+        private static bool IsObjectTreeNode(TreeViewItem node) =>
+            node?.Tag is Guid id && PtObjectRepository.Get(id) != null;
+
+        private static bool IsBlockTreeNode(TreeViewItem node) =>
+            node?.Tag is Guid id && PtBlockRepository.Get(id) != null;
+
+        private static bool IsTableRootNode(TreeViewItem node) =>
+            node?.Tag is Guid id && PtTableRepository.Get(id) != null;
+
+        private static PtObject GetObjectFromTreeNode(TreeViewItem node) =>
+            node?.Tag is Guid id ? PtObjectRepository.Get(id) : null;
+
+        private static Guid? GetBlockIdFromContainer(ItemsControl container)
+        {
+            if (container is TreeViewItem item && item.Tag is Guid id && PtBlockRepository.Get(id) != null)
+                return id;
+            return null;
+        }
+
+        private static TreeViewItem GetTreeViewItemFromSource(DependencyObject source)
+        {
+            while (source != null)
+            {
+                if (source is TreeViewItem item)
+                    return item;
+                source = VisualTreeHelper.GetParent(source);
+            }
+            return null;
+        }
+
+        private static bool IsDescendant(TreeViewItem parent, TreeViewItem candidate)
+        {
+            foreach (TreeViewItem child in parent.Items)
+            {
+                if (child == candidate || IsDescendant(child, candidate))
+                    return true;
+            }
+            return false;
         }
 
         private void TreeObjects_OnSelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)

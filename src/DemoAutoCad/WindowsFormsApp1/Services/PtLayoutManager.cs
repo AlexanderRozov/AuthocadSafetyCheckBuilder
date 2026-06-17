@@ -1,6 +1,9 @@
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.Geometry;
 using Demo.Models;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Demo.Services
 {
@@ -99,31 +102,51 @@ namespace Demo.Services
             if (session == null)
                 return;
 
+            var tableId = obj.TableId;
+
             using (var tr = db.TransactionManager.StartTransaction())
             {
                 DrawingService.EraseObject(tr, obj);
-
-                if (!session.TableId.IsNull)
-                {
-                    var table = (Table)tr.GetObject(session.TableId, OpenMode.ForWrite);
-                    var col = obj.ColumnIndex;
-                    if (col < table.Columns.Count)
-                    {
-                        table.Cells[0, col].TextString = string.Empty;
-                        table.Cells[1, col].TextString = string.Empty;
-                        table.Cells[2, col].TextString = string.Empty;
-                        table.Cells[3, col].TextString = string.Empty;
-                        table.Cells[4, col].TextString = string.Empty;
-                        table.Cells[5, col].TextString = string.Empty;
-                        if (table.Rows.Count > 6)
-                            table.Cells[6, col].TextString = string.Empty;
-                    }
-                }
-
                 tr.Commit();
             }
 
+            PtObjectRepository.ClearParentReference(obj.InstanceId);
             PtObjectRepository.Remove(obj);
+            SyncTableColumnOrder(db, tableId);
+        }
+
+        public static void SyncTableColumnOrder(Database db, Guid tableId)
+        {
+            var session = PtTableRepository.Get(tableId);
+            if (session == null || session.TableId.IsNull)
+                return;
+
+            var objects = PtObjectRepository.GetByTable(tableId).ToList();
+
+            using (var tr = db.TransactionManager.StartTransaction())
+            {
+                var table = (Table)tr.GetObject(session.TableId, OpenMode.ForWrite);
+
+                while (table.Columns.Count > 1)
+                    table.DeleteColumns(1, 1);
+
+                for (var i = 0; i < objects.Count; i++)
+                {
+                    var obj = objects[i];
+                    var colIndex = table.Columns.Count;
+                    table.InsertColumns(colIndex, PtLayoutConstants.DataColumnWidth, 1);
+                    obj.ColumnIndex = colIndex;
+                    obj.ColumnNumber = PtLayoutConstants.FirstColumnNumber + i;
+                    var fdNumber = PtLayoutConstants.FirstFdNumber + i;
+                    obj.FdCode = $"FD-{fdNumber:D4}";
+                    obj.JsCode = $"JS05-UC-{1000 + obj.ColumnNumber}A";
+                    FillDataColumnFromObject(table, colIndex, obj);
+                }
+
+                session.DeviceCount = objects.Count;
+                StyleTable(table);
+                tr.Commit();
+            }
         }
 
         public static void SyncObjectToDrawing(Database db, PtObject obj)
@@ -239,6 +262,18 @@ namespace Demo.Services
                     : string.Empty;
                 table.Cells[6, col].TextString = blockName;
             }
+        }
+
+        private static void FillDataColumnFromObject(Table table, int col, PtObject obj)
+        {
+            table.Cells[0, col].TextString = obj.ColumnNumber.ToString();
+            table.Cells[1, col].TextString = obj.FdCode ?? string.Empty;
+            table.Cells[2, col].TextString = obj.JsCode ?? string.Empty;
+            table.Cells[3, col].TextString = obj.Code ?? string.Empty;
+            table.Cells[4, col].TextString = obj.Number ?? string.Empty;
+            table.Cells[5, col].TextString = obj.FullName ?? string.Empty;
+            if (table.Rows.Count > 6)
+                table.Cells[6, col].TextString = PtObjectRepository.GetBlockName(obj);
         }
 
         private static void StyleTable(Table table)

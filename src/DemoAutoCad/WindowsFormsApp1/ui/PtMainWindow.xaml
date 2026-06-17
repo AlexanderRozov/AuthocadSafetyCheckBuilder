@@ -75,12 +75,22 @@
                     <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
                         <Button Content="Добавить" Padding="10,4" Margin="0,0,6,0" Click="BtnTreeAdd_OnClick"/>
                         <Button Content="Удалить" Padding="10,4" Margin="0,0,6,0" Click="BtnTreeDelete_OnClick"/>
+                        <Button Content="▲" Padding="10,4" Margin="0,0,6,0" ToolTip="Переместить вверх"
+                                Click="BtnTreeMoveUp_OnClick"/>
+                        <Button Content="▼" Padding="10,4" Margin="0,0,6,0" ToolTip="Переместить вниз"
+                                Click="BtnTreeMoveDown_OnClick"/>
                         <Button Content="Новый блок" Padding="10,4" Margin="0,0,6,0" Click="BtnNewBlock_OnClick"/>
                         <ComboBox x:Name="cmbBlocks" Width="110" DisplayMemberPath="Name" Margin="0,0,6,0"/>
                         <Button Content="В блок" Padding="10,4" Click="BtnAddToBlock_OnClick"/>
                     </StackPanel>
 
-                    <TreeView x:Name="treeObjects" Grid.Row="1" SelectedItemChanged="TreeObjects_OnSelectedItemChanged"/>
+                    <TreeView x:Name="treeObjects" Grid.Row="1"
+                              AllowDrop="True"
+                              SelectedItemChanged="TreeObjects_OnSelectedItemChanged"
+                              PreviewMouseLeftButtonDown="TreeObjects_OnPreviewMouseLeftButtonDown"
+                              PreviewMouseMove="TreeObjects_OnPreviewMouseMove"
+                              DragOver="TreeObjects_OnDragOver"
+                              Drop="TreeObjects_OnDrop"/>
 
                     <Grid Grid.Row="2" Margin="0,8,0,4">
                         <Grid.ColumnDefinitions>

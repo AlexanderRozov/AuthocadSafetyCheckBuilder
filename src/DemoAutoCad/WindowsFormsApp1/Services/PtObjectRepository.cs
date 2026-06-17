@@ -76,6 +76,22 @@ namespace Demo.Services
             Objects.Remove(obj);
         }
 
+        public static void ClearParentReference(Guid parentId)
+        {
+            foreach (var child in Objects.Where(o => o.ParentObjectId == parentId))
+                child.ParentObjectId = null;
+        }
+
+        public static void SetColumnOrder(Guid tableId, IReadOnlyList<Guid> orderedIds)
+        {
+            for (var i = 0; i < orderedIds.Count; i++)
+            {
+                var obj = Get(orderedIds[i]);
+                if (obj != null && obj.TableId == tableId)
+                    obj.ColumnIndex = i + 1;
+            }
+        }
+
         public static string GetBlockName(PtObject obj)
         {
             if (!obj.BlockGroupId.HasValue)

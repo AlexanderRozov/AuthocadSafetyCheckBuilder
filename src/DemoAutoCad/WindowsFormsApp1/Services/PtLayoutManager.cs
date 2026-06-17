@@ -146,6 +146,7 @@ namespace Demo.Services
                     table.Cells[5, col].TextString = obj.FullName;
                     if (table.Rows.Count > 6)
                         table.Cells[6, col].TextString = PtObjectRepository.GetBlockName(obj);
+                    StyleColumnCells(table, col);
                 }
 
                 if (!obj.LabelTextId.IsNull)
@@ -180,6 +181,7 @@ namespace Demo.Services
 
             table.Columns[0].Width = PtLayoutConstants.LabelColumnWidth;
             SetLabelCells(table);
+            StyleTable(table);
             return table;
         }
 
@@ -191,6 +193,7 @@ namespace Demo.Services
         {
             table.InsertColumns(1, PtLayoutConstants.DataColumnWidth, 1);
             FillDataColumn(table, 1, request, columnNumber, fdNumber);
+            StyleTable(table);
         }
 
         private static void AppendTableColumn(
@@ -202,6 +205,7 @@ namespace Demo.Services
             var newColIndex = table.Columns.Count;
             table.InsertColumns(newColIndex, PtLayoutConstants.DataColumnWidth, 1);
             FillDataColumn(table, newColIndex, request, columnNumber, fdNumber);
+            StyleTable(table);
         }
 
         private static void SetLabelCells(Table table)
@@ -235,6 +239,27 @@ namespace Demo.Services
                     : string.Empty;
                 table.Cells[6, col].TextString = blockName;
             }
+        }
+
+        private static void StyleTable(Table table)
+        {
+            for (var row = 0; row < table.Rows.Count; row++)
+            {
+                for (var col = 0; col < table.Columns.Count; col++)
+                    ApplyCellStyle(table.Cells[row, col]);
+            }
+        }
+
+        private static void ApplyCellStyle(Cell cell)
+        {
+            cell.TextHeight = PtLayoutConstants.TableTextHeight;
+            cell.Alignment = CellAlignment.MiddleCenter;
+        }
+
+        private static void StyleColumnCells(Table table, int col)
+        {
+            for (var row = 0; row < table.Rows.Count; row++)
+                ApplyCellStyle(table.Cells[row, col]);
         }
     }
 }

@@ -18,6 +18,42 @@ namespace Demo.Services
             EnsureLayer(tr, db, PtLayoutConstants.LayerLinks, 3);
         }
 
+        private static double GetBlockFitScale(Transaction tr, ObjectId blockId)
+        {
+            try
+            {
+                var btr = (BlockTableRecord)tr.GetObject(blockId, OpenMode.ForRead);
+                var ext = new Extents3d();
+                var hasExtents = false;
+
+                foreach (ObjectId id in btr)
+                {
+                    var ent = tr.GetObject(id, OpenMode.ForRead) as Entity;
+                    if (ent == null)
+                        continue;
+
+                    ext.AddExtents(ent.GeometricExtents);
+                    hasExtents = true;
+                }
+
+                if (!hasExtents)
+                    return 1;
+
+                var width = ext.MaxPoint.X - ext.MinPoint.X;
+                var height = ext.MaxPoint.Y - ext.MinPoint.Y;
+                if (width < 0.001 || height < 0.001)
+                    return 1;
+
+                var scaleX = PtLayoutConstants.RectangleWidth / width;
+                var scaleY = PtLayoutConstants.RectangleHeight / height;
+                return Math.Min(scaleX, scaleY);
+            }
+            catch
+            {
+                return 1;
+            }
+        }
+
         private static void EnsureLayer(Transaction tr, Database db, string name, short colorIndex)
         {
             var lt = (LayerTable)tr.GetObject(db.LayerTableId, OpenMode.ForWrite);
@@ -73,9 +109,11 @@ namespace Demo.Services
 
             var blockRef = new BlockReference(center, bt[blockTemplate.BlockName])
             {
-                Layer = PtLayoutConstants.LayerDevices,
-                ScaleFactors = new Scale3d(1, 1, 1)
+                Layer = PtLayoutConstants.LayerDevices
             };
+
+            var scale = GetBlockFitScale(tr, bt[blockTemplate.BlockName]);
+            blockRef.ScaleFactors = new Scale3d(scale, scale, 1);
 
             ms.AppendEntity(blockRef);
             tr.AddNewlyCreatedDBObject(blockRef, true);

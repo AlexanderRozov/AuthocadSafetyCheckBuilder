@@ -6,35 +6,35 @@ namespace AutoCadPlugin.Commands
 {
     public class PtCommands
     {
-        private static PtMainForm _form;
+        private static PtMainWindow _window;
 
         [CommandMethod("PLACEPT")]
         public void PlacePt()
         {
-            ShowMainForm();
+            ShowMainWindow();
         }
 
         [CommandMethod("PTPANEL")]
         public void ShowPanel()
         {
-            ShowMainForm();
+            ShowMainWindow();
         }
 
-        private static void ShowMainForm()
+        private static void ShowMainWindow()
         {
             var doc = Application.DocumentManager.MdiActiveDocument;
             if (doc == null)
                 return;
 
-            if (_form == null || _form.IsDisposed)
+            if (_window == null)
             {
-                _form = new PtMainForm();
-                Application.ShowModelessDialog(_form);
+                _window = new PtMainWindow();
+                Application.ShowModelessWindow(_window);
             }
             else
             {
-                _form.Show();
-                _form.BringToFront();
+                _window.Show();
+                _window.Activate();
             }
         }
     }

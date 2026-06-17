@@ -52,12 +52,13 @@ namespace Demo.ui
             if (device == null)
             {
                 lblNumberValue.Text = string.Empty;
-                lblPreviewValue.Text = string.Empty;
+                txtLabel.Text = string.Empty;
                 return;
             }
 
             lblNumberValue.Text = PtObjectRepository.PeekNextNumber(device.Code);
-            lblPreviewValue.Text = $"{device.Code}-{lblNumberValue.Text}";
+            if (!txtLabel.IsKeyboardFocused)
+                txtLabel.Text = $"{device.Code}-{lblNumberValue.Text}";
         }
 
         private void RefreshTables()
@@ -93,6 +94,18 @@ namespace Demo.ui
             foreach (var item in combo.Items)
             {
                 if (item is PtTableSession t && t.Id == id)
+                {
+                    combo.SelectedItem = item;
+                    return;
+                }
+            }
+        }
+
+        private static void SelectLinkComboItem(ComboBox combo, Guid objectId)
+        {
+            foreach (var item in combo.Items)
+            {
+                if (item is ParentItem parent && parent.Id == objectId)
                 {
                     combo.SelectedItem = item;
                     return;
@@ -247,10 +260,9 @@ namespace Demo.ui
             if (device == null)
                 return false;
 
-            Hide();
+            HideForDrawingAction();
             var insertionPoint = ObjectSelectionService.PickInsertionPoint(doc.Editor);
-            Show();
-            Activate();
+            RestoreAfterDrawingAction();
 
             if (!insertionPoint.HasValue)
                 return false;
@@ -262,6 +274,7 @@ namespace Demo.ui
                 BlockTemplate = CurrentBlock,
                 Number = PtObjectRepository.GetNextNumber(device.Code),
                 FontSize = GetFontSize(),
+                CustomLabel = txtLabel.Text,
                 ParentObjectId = parentId,
                 BlockGroupId = blockGroupId,
                 InsertionPoint = insertionPoint.Value
@@ -275,7 +288,6 @@ namespace Demo.ui
                     lockedDoc.Editor.WriteMessage(
                         $"\nОбъект {ptObject.Label} добавлен в \"{table.Name}\".");
                     lockedDoc.Editor.Regen();
-                    ObjectSelectionService.ActivateOnDrawing(ptObject);
                 });
             }
             catch (Exception ex)
@@ -319,9 +331,9 @@ namespace Demo.ui
             if (doc == null)
                 return;
 
-            Hide();
+            HideForDrawingAction();
             var result = doc.Editor.GetPoint("\nУкажите точку вставки таблицы:");
-            Show();
+            RestoreAfterDrawingAction();
 
             if (result.Status != PromptStatus.OK)
                 return;
@@ -487,7 +499,6 @@ namespace Demo.ui
                 var targetIndex = targetParent.Items.IndexOf(target);
                 targetParent.Items.Insert(targetIndex, dragged);
                 draggedObj.BlockGroupId = GetBlockIdFromContainer(targetParent);
-                draggedObj.ParentObjectId = null;
             }
             else if (IsBlockTreeNode(target))
             {
@@ -495,13 +506,11 @@ namespace Demo.ui
                 target.IsExpanded = true;
                 if (target.Tag is Guid blockId)
                     draggedObj.BlockGroupId = blockId;
-                draggedObj.ParentObjectId = null;
             }
             else if (IsTableRootNode(target))
             {
                 target.Items.Add(dragged);
                 draggedObj.BlockGroupId = null;
-                draggedObj.ParentObjectId = null;
             }
             else
             {
@@ -609,6 +618,8 @@ namespace Demo.ui
             if (tabMain.SelectedItem is TabItem tab && (tab.Header as string) == "Таблицы")
                 HighlightGridRow(objectId.Value);
 
+            SelectLinkComboItem(cmbLinkTo, objectId.Value);
+
             try
             {
                 ObjectSelectionService.ActivateOnDrawing(obj);
@@ -665,42 +676,51 @@ namespace Demo.ui
             RefreshTables();
         }
 
+        private void BtnLinkFromSelected_OnClick(object sender, RoutedEventArgs e)
+        {
+            var objectId = GetSelectedObjectIdFromTree();
+            if (!objectId.HasValue)
+                return;
+
+            SelectLinkComboItem(cmbLinkFrom, objectId.Value);
+        }
+
+        private void BtnLinkToSelected_OnClick(object sender, RoutedEventArgs e)
+        {
+            var objectId = GetSelectedObjectIdFromTree();
+            if (!objectId.HasValue)
+                return;
+
+            SelectLinkComboItem(cmbLinkTo, objectId.Value);
+        }
+
         private void BtnCreateLink_OnClick(object sender, RoutedEventArgs e)
         {
-            var table = CurrentEditTable;
+            var table = CurrentEditTable ?? CurrentTable;
             if (table == null)
                 return;
 
             var fromItem = cmbLinkFrom.SelectedItem as ParentItem;
             var toItem = cmbLinkTo.SelectedItem as ParentItem;
             if (fromItem?.Id == null || toItem?.Id == null)
-            {
-                MessageBox.Show("Выберите объекты для связи.", "Связи",
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
-            }
 
             if (fromItem.Id == toItem.Id)
                 return;
 
-            var fromObj = PtObjectRepository.Get(fromItem.Id.Value);
-            var toObj = PtObjectRepository.Get(toItem.Id.Value);
-            if (fromObj == null || toObj == null)
-                return;
-
-            DocumentLockHelper.Run((lockedDoc, db) =>
+            try
             {
-                using (var tr = db.TransactionManager.StartTransaction())
+                DocumentLockHelper.Run((lockedDoc, db) =>
                 {
-                    var bt = (BlockTable)tr.GetObject(db.BlockTableId, OpenMode.ForRead);
-                    var ms = (BlockTableRecord)tr.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForWrite);
-                    var link = PtObjectRepository.AddLink(table.Id, fromItem.Id.Value, toItem.Id.Value);
-                    toObj.ParentObjectId = fromItem.Id;
-                    link.ArrowId = DrawingService.DrawArrow(tr, ms, fromObj.Center, toObj.Center);
-                    tr.Commit();
-                }
-                lockedDoc.Editor.Regen();
-            });
+                    PtLayoutManager.CreateObjectLink(db, table.Id, fromItem.Id.Value, toItem.Id.Value);
+                    lockedDoc.Editor.Regen();
+                });
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, "Связи", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
 
             RefreshLinksTab();
         }
@@ -714,15 +734,23 @@ namespace Demo.ui
             if (obj == null)
                 return;
 
+            var columnHeader = e.Column.Header as string;
+
             dgvDevices.Dispatcher.BeginInvoke(new Action(() =>
             {
-                obj.Code = row.Code ?? obj.Code;
-                obj.Number = row.Number ?? obj.Number;
-                obj.FullName = row.FullName ?? obj.FullName;
-                obj.FdCode = row.FdCode ?? obj.FdCode;
-                obj.JsCode = row.JsCode ?? obj.JsCode;
-                obj.Label = $"{obj.Code}-{obj.Number}";
-                row.Label = obj.Label;
+                if (columnHeader == "Подпись")
+                {
+                    obj.Label = row.Label?.Trim() ?? obj.Label;
+                    row.Label = obj.Label;
+                }
+                else
+                {
+                    obj.Code = row.Code ?? obj.Code;
+                    obj.Number = row.Number ?? obj.Number;
+                    obj.FullName = row.FullName ?? obj.FullName;
+                    obj.FdCode = row.FdCode ?? obj.FdCode;
+                    obj.JsCode = row.JsCode ?? obj.JsCode;
+                }
 
                 DocumentLockHelper.Run((lockedDoc, db) =>
                 {
@@ -731,6 +759,18 @@ namespace Demo.ui
                 });
                 RefreshLinksTab();
             }));
+        }
+
+        private void HideForDrawingAction()
+        {
+            if (Visibility == System.Windows.Visibility.Visible)
+                Hide();
+        }
+
+        private void RestoreAfterDrawingAction()
+        {
+            if (Visibility != System.Windows.Visibility.Visible)
+                Show();
         }
 
         private void BtnClose_OnClick(object sender, RoutedEventArgs e) => Hide();

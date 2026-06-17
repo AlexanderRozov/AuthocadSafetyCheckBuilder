@@ -41,15 +41,6 @@ namespace Demo.Services
 
                 SyncCenterFromDrawing(db, obj);
                 ed.UpdateScreen();
-
-                try
-                {
-                    lockedDoc.SendStringToExecute("._ZOOM _O \n", true, false, false);
-                }
-                catch
-                {
-                    // zoom optional
-                }
             });
         }
 

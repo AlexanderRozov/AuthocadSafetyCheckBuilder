@@ -31,7 +31,7 @@
                         <ComboBox x:Name="cmbDeviceType" DisplayMemberPath="Name" Margin="0,0,0,8"
                                   SelectionChanged="CmbDeviceType_OnSelectionChanged"/>
 
-                        <TextBlock Text="Блок:" Margin="0,0,0,4"/>
+                        <TextBlock Text="Форма:" Margin="0,0,0,4"/>
                         <ComboBox x:Name="cmbBlock" DisplayMemberPath="Name" Margin="0,0,0,8"
                                   SelectionChanged="CmbDeviceType_OnSelectionChanged"/>
 
@@ -51,7 +51,7 @@
                         </Grid>
 
                         <TextBlock Text="Подпись:"/>
-                        <TextBlock x:Name="lblPreviewValue" FontWeight="Bold" Margin="0,4,0,8"/>
+                        <TextBox x:Name="txtLabel" Margin="0,4,0,8"/>
 
                         <TextBlock Text="Связать с (род.):" Margin="0,0,0,4"/>
                         <ComboBox x:Name="cmbParent" DisplayMemberPath="Label" Margin="0,0,0,12"/>
@@ -93,19 +93,41 @@
                               Drop="TreeObjects_OnDrop"/>
 
                     <Grid Grid.Row="2" Margin="0,8,0,4">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Text="От:" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                        <ComboBox x:Name="cmbLinkFrom" Grid.Column="1" DisplayMemberPath="Label" Margin="0,0,8,0"/>
-                        <TextBlock Grid.Column="2" Text="К:" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                        <ComboBox x:Name="cmbLinkTo" Grid.Column="3" DisplayMemberPath="Label"/>
-                        <Button Grid.Column="4" Content="Создать связь" Margin="8,0,0,0" Padding="8,4"
-                                Click="BtnCreateLink_OnClick"/>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,6">
+                            <Button Content="В «От»" Padding="8,4" Margin="0,0,6,0" Click="BtnLinkFromSelected_OnClick"/>
+                            <Button Content="В «К»" Padding="8,4" Click="BtnLinkToSelected_OnClick"/>
+                        </StackPanel>
+                        <Grid Grid.Row="1">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="От:" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                            <ComboBox x:Name="cmbLinkFrom" Grid.Column="1" Margin="0,0,8,0">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Label}"/>
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                            <TextBlock Grid.Column="2" Text="К:" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                            <ComboBox x:Name="cmbLinkTo" Grid.Column="3">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Label}"/>
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                            <Button Grid.Column="4" Content="Создать связь" Margin="8,0,0,0" Padding="8,4"
+                                    Click="BtnCreateLink_OnClick"/>
+                        </Grid>
                     </Grid>
 
                     <TextBlock Grid.Row="3" Text="Связи:" Margin="0,4,0,4"/>
@@ -130,7 +152,7 @@
                               SelectionMode="Single" IsReadOnly="False"
                               RowHeight="26" FontSize="13" HeadersVisibility="Column">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="Подпись" Binding="{Binding Label}" IsReadOnly="True" Width="70"/>
+                            <DataGridTextColumn Header="Подпись" Binding="{Binding Label}" Width="90"/>
                             <DataGridTextColumn Header="Код" Binding="{Binding Code}" Width="50"/>
                             <DataGridTextColumn Header="Номер" Binding="{Binding Number}" Width="55"/>
                             <DataGridTextColumn Header="Наименование" Binding="{Binding FullName}" Width="*"/>

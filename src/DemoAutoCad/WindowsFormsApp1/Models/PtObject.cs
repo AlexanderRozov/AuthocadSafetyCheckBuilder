@@ -19,6 +19,7 @@ namespace Demo.Models
         public int ColumnNumber { get; set; }
         public double FontSize { get; set; }
         public string BlockName { get; set; }
+        public string ShapeId { get; set; }
         public Point3d Center { get; set; }
         public Guid? ParentObjectId { get; set; }
         public Guid? BlockGroupId { get; set; }

@@ -46,6 +46,8 @@ namespace Demo.Services
 
         public static PtObjectLink AddLink(Guid tableId, Guid fromId, Guid toId)
         {
+            RemoveIncomingLinks(toId);
+
             var link = new PtObjectLink
             {
                 Id = Guid.NewGuid(),
@@ -60,6 +62,14 @@ namespace Demo.Services
                 child.ParentObjectId = fromId;
 
             return link;
+        }
+
+        public static void RemoveIncomingLinks(Guid toObjectId)
+        {
+            Links.RemoveAll(l => l.ToObjectId == toObjectId);
+            var child = Get(toObjectId);
+            if (child != null)
+                child.ParentObjectId = null;
         }
 
         public static void RemoveLinksForObject(Guid objectId)

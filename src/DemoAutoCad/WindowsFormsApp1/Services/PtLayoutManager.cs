@@ -78,22 +78,78 @@ namespace Demo.Services
 
                 if (request.ParentObjectId.HasValue)
                 {
-                    var link = PtObjectRepository.AddLink(
-                        session.Id,
-                        request.ParentObjectId.Value,
-                        ptObject.InstanceId);
-
-                    var parent = PtObjectRepository.Get(request.ParentObjectId.Value);
-                    if (parent != null)
-                    {
-                        link.ArrowId = DrawingService.DrawArrow(
-                            tr, ms, parent.Center, ptObject.Center);
-                    }
+                    CreateObjectLink(tr, db, ms, session.Id,
+                        request.ParentObjectId.Value, ptObject.InstanceId);
                 }
 
                 tr.Commit();
                 return ptObject;
             }
+        }
+
+        public static void CreateObjectLink(Database db, Guid tableId, Guid fromId, Guid toId)
+        {
+            if (fromId == toId)
+                return;
+
+            var fromObj = PtObjectRepository.Get(fromId);
+            var toObj = PtObjectRepository.Get(toId);
+            if (fromObj == null || toObj == null)
+                return;
+
+            using (var tr = db.TransactionManager.StartTransaction())
+            {
+                DrawingService.EnsureLayers(tr, db);
+                ObjectSelectionService.SyncCenterFromDrawing(db, fromObj);
+                ObjectSelectionService.SyncCenterFromDrawing(db, toObj);
+
+                var bt = (BlockTable)tr.GetObject(db.BlockTableId, OpenMode.ForRead);
+                var ms = (BlockTableRecord)tr.GetObject(
+                    bt[BlockTableRecord.ModelSpace],
+                    OpenMode.ForWrite);
+
+                EraseIncomingLinkArrows(tr, toId);
+
+                var link = PtObjectRepository.AddLink(tableId, fromId, toId);
+                link.ArrowId = DrawingService.DrawArrow(
+                    tr, ms, fromObj.Center, toObj.Center,
+                    DrawingService.GetShapeHalfHeight(fromObj),
+                    DrawingService.GetShapeHalfHeight(toObj));
+
+                tr.Commit();
+            }
+        }
+
+        private static void CreateObjectLink(
+            Transaction tr,
+            Database db,
+            BlockTableRecord ms,
+            Guid tableId,
+            Guid fromId,
+            Guid toId)
+        {
+            var fromObj = PtObjectRepository.Get(fromId);
+            var toObj = PtObjectRepository.Get(toId);
+            if (fromObj == null || toObj == null)
+                return;
+
+            ObjectSelectionService.SyncCenterFromDrawing(db, fromObj);
+            ObjectSelectionService.SyncCenterFromDrawing(db, toObj);
+            EraseIncomingLinkArrows(tr, toId);
+
+            var link = PtObjectRepository.AddLink(tableId, fromId, toId);
+            link.ArrowId = DrawingService.DrawArrow(
+                tr, ms, fromObj.Center, toObj.Center,
+                DrawingService.GetShapeHalfHeight(fromObj),
+                DrawingService.GetShapeHalfHeight(toObj));
+        }
+
+        private static void EraseIncomingLinkArrows(Transaction tr, Guid toObjectId)
+        {
+            foreach (var link in PtObjectRepository.AllLinks.Where(l => l.ToObjectId == toObjectId).ToList())
+                DrawingService.EraseEntity(tr, link.ArrowId);
+
+            PtObjectRepository.RemoveIncomingLinks(toObjectId);
         }
 
         public static void DeleteObject(Database db, PtObject obj)

@@ -11,9 +11,12 @@ namespace Demo.Models
         public double FontSize { get; set; }
         public System.Guid? ParentObjectId { get; set; }
         public System.Guid? BlockGroupId { get; set; }
+        public string CustomLabel { get; set; }
         public Point3d InsertionPoint { get; set; }
 
-        public string Label => $"{DeviceType.Code}-{Number}";
+        public string Label => string.IsNullOrWhiteSpace(CustomLabel)
+            ? $"{DeviceType.Code}-{Number}"
+            : CustomLabel.Trim();
 
         public string FullId => $"*-{DeviceType.Code}-{Number}";
     }

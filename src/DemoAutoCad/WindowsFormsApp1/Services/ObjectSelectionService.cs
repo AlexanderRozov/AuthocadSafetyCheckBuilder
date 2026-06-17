@@ -3,6 +3,7 @@ using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.EditorInput;
 using Autodesk.AutoCAD.Geometry;
 using Demo.Models;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -10,6 +11,8 @@ namespace Demo.Services
 {
     public static class ObjectSelectionService
     {
+        private static PtObject _pendingActivate;
+
         public static Point3d? PickInsertionPoint(Editor ed)
         {
             var opts = new PromptPointOptions("\nЩёлкните точку вставки объекта (позиция курсора):");
@@ -19,29 +22,51 @@ namespace Demo.Services
 
         public static void ActivateOnDrawing(PtObject obj)
         {
-            var doc = Application.DocumentManager.MdiActiveDocument;
-            if (doc == null || obj == null)
+            if (obj == null)
                 return;
 
-            DocumentLockHelper.Run((lockedDoc, db) =>
+            _pendingActivate = obj;
+            Application.Idle -= OnIdleActivate;
+            Application.Idle += OnIdleActivate;
+        }
+
+        private static void OnIdleActivate(object sender, EventArgs e)
+        {
+            Application.Idle -= OnIdleActivate;
+
+            var obj = _pendingActivate;
+            _pendingActivate = null;
+            if (obj == null)
+                return;
+
+            var doc = Application.DocumentManager.MdiActiveDocument;
+            if (doc == null)
+                return;
+
+            try
             {
-                var ed = lockedDoc.Editor;
-                var ids = ResolveValidEntityIds(db, obj);
-                if (ids.Length == 0)
-                    return;
-
-                try
+                DocumentLockHelper.Run((lockedDoc, db) =>
                 {
-                    ed.SetImpliedSelection(ids);
-                }
-                catch (System.Exception ex) when (ex is Autodesk.AutoCAD.Runtime.Exception)
-                {
-                    return;
-                }
+                    var ed = lockedDoc.Editor;
+                    var ids = ResolveValidEntityIds(db, obj);
+                    if (ids.Length == 0)
+                        return;
 
-                SyncCenterFromDrawing(db, obj);
-                ed.UpdateScreen();
-            });
+                    try
+                    {
+                        ed.SetImpliedSelection(ids);
+                        ed.UpdateScreen();
+                    }
+                    catch (Autodesk.AutoCAD.Runtime.Exception)
+                    {
+                        // ignore invalid selection
+                    }
+                });
+            }
+            catch
+            {
+                // best-effort
+            }
         }
 
         public static void ClearSelection()
@@ -96,23 +121,42 @@ namespace Demo.Services
             return ent != null && !ent.IsErased;
         }
 
-        public static void SyncCenterFromDrawing(Database db, PtObject obj)
+        public static void SyncCenterFromDrawing(Database db, PtObject obj, Transaction tr = null)
         {
-            if (obj.EntityId.IsNull)
+            if (obj == null || obj.EntityId.IsNull)
                 return;
 
-            using (var tr = db.TransactionManager.StartTransaction())
+            var ownsTransaction = tr == null;
+
+            if (ownsTransaction)
+                tr = db.TransactionManager.StartTransaction();
+
+            try
             {
                 var ent = tr.GetObject(obj.EntityId, OpenMode.ForRead, false) as Entity;
                 if (ent != null && !ent.IsErased)
                 {
-                    var ext = ent.GeometricExtents;
-                    obj.Center = new Point3d(
-                        (ext.MinPoint.X + ext.MaxPoint.X) / 2,
-                        (ext.MinPoint.Y + ext.MaxPoint.Y) / 2,
-                        0);
+                    try
+                    {
+                        var ext = ent.GeometricExtents;
+                        obj.Center = new Point3d(
+                            (ext.MinPoint.X + ext.MaxPoint.X) / 2,
+                            (ext.MinPoint.Y + ext.MaxPoint.Y) / 2,
+                            0);
+                    }
+                    catch (Autodesk.AutoCAD.Runtime.Exception)
+                    {
+                        // ignore entities without extents
+                    }
                 }
-                tr.Commit();
+
+                if (ownsTransaction)
+                    tr.Commit();
+            }
+            finally
+            {
+                if (ownsTransaction && tr != null)
+                    tr.Dispose();
             }
         }
     }

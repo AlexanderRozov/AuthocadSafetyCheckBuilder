@@ -14,7 +14,7 @@ namespace Demo.ui
 {
     public partial class PtMainWindow : Window
     {
-        private bool _suppressTreeSelect;
+        private bool _suppressTableSync;
         private Point _treeDragStart;
         private TreeViewItem _draggedTreeNode;
         private const string TreeDragFormat = "PtTreeObject";
@@ -46,6 +46,9 @@ namespace Demo.ui
         private PtTableSession CurrentEditTable =>
             cmbTableEdit.SelectedItem as PtTableSession ?? PtTableRepository.ActiveTable;
 
+        private PtTableSession GetLinksTable() =>
+            CurrentEditTable ?? CurrentTable ?? PtTableRepository.ActiveTable;
+
         private void UpdateNumberAndPreview()
         {
             var device = CurrentDeviceType;
@@ -66,13 +69,21 @@ namespace Demo.ui
             var tables = PtTableRepository.All.ToList();
             var active = PtTableRepository.ActiveTable;
 
-            cmbTable.ItemsSource = tables;
-            cmbTableEdit.ItemsSource = tables.ToList();
-
-            if (active != null)
+            _suppressTableSync = true;
+            try
             {
-                SelectComboItem(cmbTable, active.Id);
-                SelectComboItem(cmbTableEdit, active.Id);
+                cmbTable.ItemsSource = tables;
+                cmbTableEdit.ItemsSource = tables.ToList();
+
+                if (active != null)
+                {
+                    SelectComboItem(cmbTable, active.Id);
+                    SelectComboItem(cmbTableEdit, active.Id);
+                }
+            }
+            finally
+            {
+                _suppressTableSync = false;
             }
 
             RefreshBlockCombo();
@@ -130,7 +141,9 @@ namespace Demo.ui
             treeObjects.Items.Clear();
             lstLinks.Items.Clear();
 
-            var table = CurrentEditTable;
+            var table = GetLinksTable();
+            RefreshLinkCombos(table);
+
             if (table == null)
                 return;
 
@@ -147,48 +160,101 @@ namespace Demo.ui
             var objects = PtObjectRepository.GetByTable(table.Id).ToList();
             var nodeMap = new Dictionary<Guid, TreeViewItem>();
 
-            foreach (var obj in objects)
+            foreach (var obj in OrderObjectsForTree(objects))
             {
-                var parent = root;
-                if (obj.BlockGroupId.HasValue && blockNodes.TryGetValue(obj.BlockGroupId.Value, out var blockNode))
-                    parent = blockNode;
+                ItemsControl parent = root;
 
-                var node = new TreeViewItem { Header = obj.Label, Tag = obj.InstanceId };
+                if (obj.ParentObjectId.HasValue &&
+                    nodeMap.TryGetValue(obj.ParentObjectId.Value, out var parentNode))
+                {
+                    parent = parentNode;
+                }
+                else if (obj.BlockGroupId.HasValue &&
+                         blockNodes.TryGetValue(obj.BlockGroupId.Value, out var blockNode))
+                {
+                    parent = blockNode;
+                }
+
+                var label = string.IsNullOrWhiteSpace(obj.Label)
+                    ? $"{obj.Code}-{obj.Number}"
+                    : obj.Label;
+                var node = new TreeViewItem { Header = label, Tag = obj.InstanceId };
                 parent.Items.Add(node);
                 nodeMap[obj.InstanceId] = node;
             }
 
-            foreach (var obj in objects.Where(o => o.ParentObjectId.HasValue))
-            {
-                if (!nodeMap.TryGetValue(obj.ParentObjectId.Value, out var parentNode))
-                    continue;
-                if (!nodeMap.TryGetValue(obj.InstanceId, out var childNode))
-                    continue;
-
-                var oldParent = childNode.Parent as ItemsControl;
-                oldParent?.Items.Remove(childNode);
-                parentNode.Items.Add(childNode);
-            }
-
             treeObjects.Items.Add(root);
-            _suppressTreeSelect = true;
-            root.IsSelected = true;
-            _suppressTreeSelect = false;
-
-            RefreshBlockCombo();
-
-            var linkItems = new List<ParentItem> { new ParentItem(null, "(выберите)") };
-            linkItems.AddRange(objects.Select(o => new ParentItem(o.InstanceId, o.Label)));
-            cmbLinkFrom.ItemsSource = linkItems.ToList();
-            cmbLinkTo.ItemsSource = linkItems.ToList();
 
             foreach (var link in PtObjectRepository.AllLinks.Where(l => l.TableId == table.Id))
             {
                 var from = PtObjectRepository.Get(link.FromObjectId);
                 var to = PtObjectRepository.Get(link.ToObjectId);
                 if (from != null && to != null)
-                    lstLinks.Items.Add($"{from.Label} → {to.Label}");
+                {
+                    var fromLabel = string.IsNullOrWhiteSpace(from.Label) ? from.Code : from.Label;
+                    var toLabel = string.IsNullOrWhiteSpace(to.Label) ? to.Code : to.Label;
+                    lstLinks.Items.Add($"{fromLabel} → {toLabel}");
+                }
             }
+        }
+
+        private static List<PtObject> OrderObjectsForTree(IList<PtObject> objects)
+        {
+            var byId = objects.ToDictionary(o => o.InstanceId);
+            var result = new List<PtObject>();
+            var added = new HashSet<Guid>();
+            var remaining = objects.ToList();
+
+            while (remaining.Count > 0)
+            {
+                var progressed = false;
+                foreach (var obj in remaining.ToList())
+                {
+                    var parentReady = !obj.ParentObjectId.HasValue ||
+                                      !byId.ContainsKey(obj.ParentObjectId.Value) ||
+                                      added.Contains(obj.ParentObjectId.Value);
+
+                    if (!parentReady)
+                        continue;
+
+                    result.Add(obj);
+                    added.Add(obj.InstanceId);
+                    remaining.Remove(obj);
+                    progressed = true;
+                }
+
+                if (!progressed)
+                {
+                    result.AddRange(remaining);
+                    break;
+                }
+            }
+
+            return result;
+        }
+
+        private void RefreshLinkCombos(PtTableSession table)
+        {
+            var linkItems = new List<ParentItem> { new ParentItem(null, "(выберите)") };
+
+            if (table != null)
+            {
+                foreach (var obj in PtObjectRepository.GetByTable(table.Id))
+                {
+                    var label = string.IsNullOrWhiteSpace(obj.Label)
+                        ? $"{obj.Code}-{obj.Number}"
+                        : obj.Label;
+                    linkItems.Add(new ParentItem(obj.InstanceId, label));
+                }
+            }
+
+            cmbLinkFrom.ItemsSource = linkItems;
+            cmbLinkTo.ItemsSource = linkItems.ToList();
+
+            if (cmbLinkFrom.SelectedItem == null && linkItems.Count > 0)
+                cmbLinkFrom.SelectedIndex = 0;
+            if (cmbLinkTo.SelectedItem == null && linkItems.Count > 0)
+                cmbLinkTo.SelectedIndex = 0;
         }
 
         private void RefreshDevicesGrid()
@@ -303,14 +369,35 @@ namespace Demo.ui
 
         private void CmbTable_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
         {
+            if (_suppressTableSync)
+                return;
+
             if (cmbTable.SelectedItem is PtTableSession table)
+            {
                 PtTableRepository.SetActive(table.Id);
+                _suppressTableSync = true;
+                SelectComboItem(cmbTableEdit, table.Id);
+                _suppressTableSync = false;
+            }
+
             RefreshParentCombo();
             RefreshBlockCombo();
+            RefreshLinksTab();
         }
 
         private void CmbTableEdit_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
         {
+            if (_suppressTableSync)
+                return;
+
+            if (cmbTableEdit.SelectedItem is PtTableSession table)
+            {
+                PtTableRepository.SetActive(table.Id);
+                _suppressTableSync = true;
+                SelectComboItem(cmbTable, table.Id);
+                _suppressTableSync = false;
+            }
+
             RefreshDevicesGrid();
             RefreshLinksTab();
         }
@@ -320,9 +407,14 @@ namespace Demo.ui
 
         private void TabMain_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (tabMain.SelectedItem is TabItem tab &&
-                (tab.Header as string == "Связи" || tab.Header as string == "Таблицы"))
-                RefreshTables();
+            if (e.AddedItems.Count == 0 || !(e.AddedItems[0] is TabItem tab))
+                return;
+
+            var header = tab.Header as string;
+            if (header == "Связи")
+                Dispatcher.BeginInvoke(new Action(RefreshLinksTab));
+            else if (header == "Таблицы")
+                Dispatcher.BeginInvoke(new Action(RefreshDevicesGrid));
         }
 
         private void BtnNewTable_OnClick(object sender, RoutedEventArgs e)
@@ -604,9 +696,6 @@ namespace Demo.ui
 
         private void TreeObjects_OnSelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
         {
-            if (_suppressTreeSelect)
-                return;
-
             var objectId = GetSelectedObjectIdFromTree();
             if (!objectId.HasValue)
                 return;
@@ -619,15 +708,6 @@ namespace Demo.ui
                 HighlightGridRow(objectId.Value);
 
             SelectLinkComboItem(cmbLinkTo, objectId.Value);
-
-            try
-            {
-                ObjectSelectionService.ActivateOnDrawing(obj);
-            }
-            catch
-            {
-                // best-effort
-            }
         }
 
         private void BtnNewBlock_OnClick(object sender, RoutedEventArgs e)
@@ -708,6 +788,13 @@ namespace Demo.ui
             if (fromItem.Id == toItem.Id)
                 return;
 
+            if (PtObjectRepository.WouldCreateParentCycle(fromItem.Id.Value, toItem.Id.Value))
+            {
+                MessageBox.Show("Нельзя создать циклическую связь (объект уже является родителем).",
+                    "Связи", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
             try
             {
                 DocumentLockHelper.Run((lockedDoc, db) =>
@@ -722,7 +809,7 @@ namespace Demo.ui
                 return;
             }
 
-            RefreshLinksTab();
+            Dispatcher.BeginInvoke(new Action(RefreshLinksTab));
         }
 
         private void DgvDevices_OnCellEditEnding(object sender, DataGridCellEditEndingEventArgs e)

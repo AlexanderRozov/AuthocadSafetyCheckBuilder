@@ -92,6 +92,9 @@ namespace Demo.Services
             if (fromId == toId)
                 return;
 
+            if (PtObjectRepository.WouldCreateParentCycle(fromId, toId))
+                throw new System.InvalidOperationException("Нельзя создать циклическую связь.");
+
             var fromObj = PtObjectRepository.Get(fromId);
             var toObj = PtObjectRepository.Get(toId);
             if (fromObj == null || toObj == null)
@@ -100,8 +103,8 @@ namespace Demo.Services
             using (var tr = db.TransactionManager.StartTransaction())
             {
                 DrawingService.EnsureLayers(tr, db);
-                ObjectSelectionService.SyncCenterFromDrawing(db, fromObj);
-                ObjectSelectionService.SyncCenterFromDrawing(db, toObj);
+                ObjectSelectionService.SyncCenterFromDrawing(db, fromObj, tr);
+                ObjectSelectionService.SyncCenterFromDrawing(db, toObj, tr);
 
                 var bt = (BlockTable)tr.GetObject(db.BlockTableId, OpenMode.ForRead);
                 var ms = (BlockTableRecord)tr.GetObject(
@@ -133,8 +136,8 @@ namespace Demo.Services
             if (fromObj == null || toObj == null)
                 return;
 
-            ObjectSelectionService.SyncCenterFromDrawing(db, fromObj);
-            ObjectSelectionService.SyncCenterFromDrawing(db, toObj);
+            ObjectSelectionService.SyncCenterFromDrawing(db, fromObj, tr);
+            ObjectSelectionService.SyncCenterFromDrawing(db, toObj, tr);
             EraseIncomingLinkArrows(tr, toId);
 
             var link = PtObjectRepository.AddLink(tableId, fromId, toId);

@@ -72,6 +72,30 @@ namespace Demo.Services
                 child.ParentObjectId = null;
         }
 
+        public static bool WouldCreateParentCycle(Guid fromId, Guid toId)
+        {
+            if (fromId == toId)
+                return true;
+
+            var current = Get(fromId);
+            var visited = new HashSet<Guid>();
+            while (current != null)
+            {
+                if (current.InstanceId == toId)
+                    return true;
+
+                if (!current.ParentObjectId.HasValue)
+                    break;
+
+                if (!visited.Add(current.ParentObjectId.Value))
+                    break;
+
+                current = Get(current.ParentObjectId.Value);
+            }
+
+            return false;
+        }
+
         public static void RemoveLinksForObject(Guid objectId)
         {
             Links.RemoveAll(l => l.FromObjectId == objectId || l.ToObjectId == objectId);

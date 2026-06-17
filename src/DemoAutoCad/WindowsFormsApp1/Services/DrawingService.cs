@@ -439,12 +439,19 @@ namespace Demo.Services
 
         private static void EraseIfValid(Transaction tr, ObjectId id)
         {
-            if (id.IsNull)
+            if (id.IsNull || id.IsErased)
                 return;
 
-            var ent = tr.GetObject(id, OpenMode.ForWrite, false);
-            if (ent != null && !ent.IsErased)
-                ent.Erase();
+            try
+            {
+                var ent = tr.GetObject(id, OpenMode.ForWrite, false);
+                if (ent != null && !ent.IsErased)
+                    ent.Erase();
+            }
+            catch (Autodesk.AutoCAD.Runtime.Exception)
+            {
+                // entity may already be gone
+            }
         }
     }
 }

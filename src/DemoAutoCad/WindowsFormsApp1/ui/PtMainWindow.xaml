@@ -110,21 +110,11 @@
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <TextBlock Text="От:" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                            <ComboBox x:Name="cmbLinkFrom" Grid.Column="1" Margin="0,0,8,0">
-                                <ComboBox.ItemTemplate>
-                                    <DataTemplate>
-                                        <TextBlock Text="{Binding Label}"/>
-                                    </DataTemplate>
-                                </ComboBox.ItemTemplate>
-                            </ComboBox>
+                            <ComboBox x:Name="cmbLinkFrom" Grid.Column="1" Margin="0,0,8,0"
+                                      DisplayMemberPath="Label" MinWidth="120"/>
                             <TextBlock Grid.Column="2" Text="К:" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                            <ComboBox x:Name="cmbLinkTo" Grid.Column="3">
-                                <ComboBox.ItemTemplate>
-                                    <DataTemplate>
-                                        <TextBlock Text="{Binding Label}"/>
-                                    </DataTemplate>
-                                </ComboBox.ItemTemplate>
-                            </ComboBox>
+                            <ComboBox x:Name="cmbLinkTo" Grid.Column="3"
+                                      DisplayMemberPath="Label" MinWidth="120"/>
                             <Button Grid.Column="4" Content="Создать связь" Margin="8,0,0,0" Padding="8,4"
                                     Click="BtnCreateLink_OnClick"/>
                         </Grid>

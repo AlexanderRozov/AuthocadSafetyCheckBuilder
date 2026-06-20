@@ -7,6 +7,7 @@ namespace Demo.Models
         Triangle,
         Circle,
         Diamond,
-        AutoCadBlock
+        AutoCadBlock,
+        PrecreatedObject
     }
 }

@@ -30,15 +30,17 @@ namespace Demo.ui
             PtDocumentRegistry.DocumentDataLoaded += OnDocumentDataLoaded;
             LoadCatalogs();
             InitDetectorTab();
+            InitTemplatesTab();
             RefreshTables();
         }
 
         public void ReloadFromDocument()
         {
             RefreshTables();
+            RefreshTemplatesTab();
         }
 
-        public void AfterDrawingInteraction(bool success)
+        public void AfterDrawingInteraction(bool success, bool refreshTemplates = false)
         {
             if (Visibility != System.Windows.Visibility.Visible)
                 Show();
@@ -47,6 +49,8 @@ namespace Demo.ui
             {
                 UpdateNumberAndPreview();
                 RefreshTables();
+                if (refreshTemplates)
+                    RefreshTemplatesTab();
             }
         }
 
@@ -61,10 +65,28 @@ namespace Demo.ui
         private void LoadCatalogs()
         {
             cmbDeviceType.ItemsSource = PtServiceRegistry.DeviceCatalog.GetAll();
-            cmbBlock.ItemsSource = PtServiceRegistry.BlockCatalog.GetAll();
+            RefreshBlockCatalog();
             cmbDeviceType.SelectedIndex = 0;
-            cmbBlock.SelectedIndex = 0;
             UpdateNumberAndPreview();
+        }
+
+        internal void RefreshBlockCatalog()
+        {
+            var items = BlockCatalog.GetAllIncludingPrecreated();
+            var selected = cmbBlock.SelectedItem as BlockTemplate;
+            cmbBlock.ItemsSource = items;
+            if (selected != null)
+            {
+                var match = items.FirstOrDefault(i => i.Id == selected.Id);
+                if (match != null)
+                    cmbBlock.SelectedItem = match;
+                else if (items.Count > 0)
+                    cmbBlock.SelectedIndex = 0;
+            }
+            else if (items.Count > 0)
+            {
+                cmbBlock.SelectedIndex = 0;
+            }
         }
 
         private DeviceType CurrentDeviceType => cmbDeviceType.SelectedItem as DeviceType;
@@ -406,8 +428,10 @@ namespace Demo.ui
             RefreshLinksTab();
         }
 
-        private void CmbDeviceType_OnSelectionChanged(object sender, SelectionChangedEventArgs e) =>
+        private void CmbDeviceType_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
             UpdateNumberAndPreview();
+        }
 
         private void TabMain_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
         {

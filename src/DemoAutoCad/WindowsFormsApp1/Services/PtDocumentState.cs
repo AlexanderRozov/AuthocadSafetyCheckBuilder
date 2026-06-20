@@ -13,6 +13,7 @@ namespace Demo.Services
         public List<PtObjectLink> Links { get; } = new List<PtObjectLink>();
         public List<PtObjectBlock> Blocks { get; } = new List<PtObjectBlock>();
         public List<PtDetectorZone> DetectorZones { get; } = new List<PtDetectorZone>();
+        public List<PrecreatedTemplate> PrecreatedTemplates { get; } = new List<PrecreatedTemplate>();
         public Dictionary<string, int> NumberCounters { get; } = new Dictionary<string, int>();
 
         public Guid? ActiveTableId { get; set; }
@@ -27,6 +28,7 @@ namespace Demo.Services
             Links.Clear();
             Blocks.Clear();
             DetectorZones.Clear();
+            PrecreatedTemplates.Clear();
             NumberCounters.Clear();
             ActiveTableId = null;
             TableCounter = 0;

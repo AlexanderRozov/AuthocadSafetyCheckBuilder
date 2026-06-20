@@ -33,7 +33,28 @@
 
                         <TextBlock Text="Форма:" Margin="0,0,0,4"/>
                         <ComboBox x:Name="cmbBlock" DisplayMemberPath="Name" Margin="0,0,0,8"
-                                  SelectionChanged="CmbDeviceType_OnSelectionChanged"/>
+                                  SelectionChanged="CmbBlock_OnSelectionChanged"/>
+
+                        <Border x:Name="borderShapePreview" Margin="0,0,0,8" Padding="8"
+                                BorderBrush="#555" BorderThickness="1" CornerRadius="4"
+                                Visibility="Collapsed">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="96"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Border Width="88" Height="88" Background="#202020" CornerRadius="2">
+                                    <Image x:Name="imgPlacementPreview" Stretch="Uniform" Margin="4"/>
+                                </Border>
+                                <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                                    <TextBlock x:Name="txtPlacementPreviewCode" FontWeight="Bold" TextWrapping="Wrap"/>
+                                    <TextBlock x:Name="txtPlacementPreviewDescription" Margin="0,6,0,0"
+                                               TextWrapping="Wrap" Foreground="#333"/>
+                                    <TextBlock x:Name="txtPlacementPreviewBlock" Margin="0,6,0,0"
+                                               Foreground="Gray" FontSize="11"/>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
 
                         <Grid Margin="0,0,0,8">
                             <Grid.ColumnDefinitions>
@@ -151,6 +172,76 @@
                             <DataGridTextColumn Header="Блок" Binding="{Binding BlockName}" IsReadOnly="True" Width="70"/>
                         </DataGrid.Columns>
                     </DataGrid>
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="Шаблоны объектов">
+                <Grid Margin="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="260"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.ColumnSpan="2" TextWrapping="Wrap" Margin="0,0,0,8" Foreground="Gray"
+                               Text="Импорт из таблицы на чертеже (как ПС1/ПС2) или из CSV/Excel. В preview — символ и описание. Колонки CSV: Код;Описание;Блок;Имя;ФайлDWG"/>
+
+                    <ScrollViewer Grid.Row="1" Grid.Column="0" VerticalScrollBarVisibility="Auto" Margin="0,0,8,0">
+                        <StackPanel>
+                            <TextBlock Text="Имя / код:" Margin="0,0,0,4"/>
+                            <TextBox x:Name="txtTemplateName" Margin="0,0,0,4"/>
+                            <TextBox x:Name="txtTemplateDescription" Margin="0,0,0,8"
+                                     ToolTip="Описание (необязательно)"/>
+
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                <Button Content="Из выделения" Padding="10,4" Margin="0,0,6,0"
+                                        Click="BtnCreateTemplateFromDrawing_OnClick"/>
+                                <Button Content="Из таблицы" Padding="10,4" Margin="0,0,6,0"
+                                        Click="BtnImportFromLegendTable_OnClick"/>
+                                <Button Content="Из CSV/Excel" Padding="10,4"
+                                        Click="BtnImportFromCsv_OnClick"/>
+                            </StackPanel>
+
+                            <TextBlock Text="Импорт блока из DWG:" Margin="0,0,0,4"/>
+                            <Grid Margin="0,0,0,4">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBox x:Name="txtImportDwgPath" IsReadOnly="True" Margin="0,0,8,0"/>
+                                <Button Grid.Column="1" Content="Обзор..." Padding="10,4"
+                                        Click="BtnBrowseImportDwg_OnClick"/>
+                            </Grid>
+                            <ComboBox x:Name="cmbImportBlockName" Margin="0,0,0,4"/>
+                            <Button Content="Импортировать блок" HorizontalAlignment="Left" Padding="10,4" Margin="0,0,0,12"
+                                    Click="BtnImportTemplateFromFile_OnClick"/>
+
+                            <TextBlock Text="Шаблоны:" Margin="0,0,0,4"/>
+                            <ListBox x:Name="lstPrecreatedTemplates" MinHeight="160"
+                                     DisplayMemberPath="DisplayLabel"
+                                     SelectionChanged="LstPrecreatedTemplates_OnSelectionChanged"/>
+                            <Button Content="Удалить выбранный" HorizontalAlignment="Left" Padding="10,4" Margin="0,8,0,0"
+                                    Click="BtnDeletePrecreatedTemplate_OnClick"/>
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <Border Grid.Row="1" Grid.Column="1" Padding="10" BorderBrush="#555"
+                            BorderThickness="1" CornerRadius="4">
+                        <StackPanel>
+                            <TextBlock Text="Preview" FontWeight="Bold" Margin="0,0,0,8"/>
+                            <Border Width="160" Height="160" Background="#202020" HorizontalAlignment="Center" CornerRadius="2">
+                                <Image x:Name="imgTemplatePreview" Stretch="Uniform" Margin="6"/>
+                            </Border>
+                            <TextBlock x:Name="txtTemplatePreviewCode" FontWeight="Bold" Margin="0,10,0,4" TextWrapping="Wrap"/>
+                            <TextBlock Text="Описание:" Margin="0,0,0,2" Foreground="Gray"/>
+                            <TextBlock x:Name="txtTemplatePreviewDescription" TextWrapping="Wrap" Margin="0,0,0,8"/>
+                            <TextBlock x:Name="txtTemplatePreviewBlock" Foreground="Gray" FontSize="11" TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Border>
                 </Grid>
             </TabItem>
 

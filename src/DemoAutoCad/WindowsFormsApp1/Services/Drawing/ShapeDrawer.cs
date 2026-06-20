@@ -79,6 +79,9 @@ namespace Demo.Services.Drawing
             if (template.IsAutoCadBlock)
                 return InsertAutoCadBlock(tr, db, ms, template, center);
 
+            if (template.IsPrecreatedObject)
+                return InsertPrecreatedBlock(tr, db, ms, template, center);
+
             var width = PtLayoutConstants.RectangleWidth;
             var height = PtLayoutConstants.RectangleHeight;
             var side = Math.Min(width, height);
@@ -100,6 +103,9 @@ namespace Demo.Services.Drawing
 
         public static double GetShapeHalfHeight(BlockTemplate template, double? customRadius = null)
         {
+            if (template?.IsPrecreatedObject == true && template.ShapeHalfHeight > 0)
+                return template.ShapeHalfHeight;
+
             if (customRadius.HasValue && (template?.ShapeType ?? DeviceShapeType.Rectangle) == DeviceShapeType.Circle)
                 return customRadius.Value;
 
@@ -144,6 +150,27 @@ namespace Demo.Services.Drawing
 
             var scale = GetBlockFitScale(tr, bt[blockTemplate.BlockName]);
             blockRef.ScaleFactors = new Scale3d(scale, scale, 1);
+
+            ms.AppendEntity(blockRef);
+            tr.AddNewlyCreatedDBObject(blockRef, true);
+            return blockRef.ObjectId;
+        }
+
+        private static ObjectId InsertPrecreatedBlock(
+            Transaction tr,
+            Database db,
+            BlockTableRecord ms,
+            BlockTemplate blockTemplate,
+            Point3d center)
+        {
+            var bt = (BlockTable)tr.GetObject(db.BlockTableId, OpenMode.ForRead);
+            if (string.IsNullOrEmpty(blockTemplate.BlockName) || !bt.Has(blockTemplate.BlockName))
+                return DrawRectangle(tr, ms, center, PtLayoutConstants.RectangleWidth, PtLayoutConstants.RectangleHeight);
+
+            var blockRef = new BlockReference(center, bt[blockTemplate.BlockName])
+            {
+                Layer = PtLayoutConstants.LayerDevices
+            };
 
             ms.AppendEntity(blockRef);
             tr.AddNewlyCreatedDBObject(blockRef, true);

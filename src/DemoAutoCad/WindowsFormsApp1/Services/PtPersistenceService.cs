@@ -67,7 +67,7 @@ namespace Demo.Services
         {
             var snapshot = new PtDrawingSnapshot
             {
-                Version = 2,
+                Version = 3,
                 ActiveTableId = state.ActiveTableId?.ToString(),
                 TableCounter = state.TableCounter,
                 BlockCounter = state.BlockCounter,
@@ -157,6 +157,21 @@ namespace Demo.Services
                     DetectorObjectIds = zone.DetectorObjectIds.Select(id => id.ToString()).ToList(),
                     BoundaryHandle = GetHandleSafe(zone.BoundaryId),
                     HatchHandle = GetHandleSafe(zone.HatchId)
+                });
+            }
+
+            foreach (var template in state.PrecreatedTemplates)
+            {
+                snapshot.PrecreatedTemplates.Add(new PrecreatedTemplateSnapshot
+                {
+                    Id = template.Id,
+                    Code = template.Code,
+                    Name = template.Name,
+                    Description = template.Description,
+                    BlockName = template.BlockName,
+                    SourceFile = template.SourceFile,
+                    ShapeHalfHeight = template.ShapeHalfHeight,
+                    PreviewImageBase64 = template.PreviewImageBase64
                 });
             }
 
@@ -334,6 +349,25 @@ namespace Demo.Services
                     DetectorObjectIds = detectorIds,
                     BoundaryId = boundaryId,
                     HatchId = hatchId
+                });
+            }
+
+            foreach (var templateDto in snapshot.PrecreatedTemplates ?? Enumerable.Empty<PrecreatedTemplateSnapshot>())
+            {
+                if (string.IsNullOrWhiteSpace(templateDto?.Id) ||
+                    string.IsNullOrWhiteSpace(templateDto.BlockName))
+                    continue;
+
+                state.PrecreatedTemplates.Add(new PrecreatedTemplate
+                {
+                    Id = templateDto.Id,
+                    Code = templateDto.Code,
+                    Name = templateDto.Name,
+                    Description = templateDto.Description,
+                    BlockName = templateDto.BlockName,
+                    SourceFile = templateDto.SourceFile,
+                    ShapeHalfHeight = templateDto.ShapeHalfHeight,
+                    PreviewImageBase64 = templateDto.PreviewImageBase64
                 });
             }
 

@@ -10,12 +10,14 @@ namespace Demo.Services.Infrastructure
             Objects = new PtObjectRepositoryImpl(state, Blocks);
             Tables = new PtTableRepositoryImpl(state);
             DetectorZones = new PtDetectorZoneRepositoryImpl(state);
+            PrecreatedTemplates = new PrecreatedTemplateRepositoryImpl(state);
         }
 
         public IPtObjectRepository Objects { get; }
         public IPtTableRepository Tables { get; }
         public IPtBlockRepository Blocks { get; }
         public IPtDetectorZoneRepository DetectorZones { get; }
+        public IPrecreatedTemplateRepository PrecreatedTemplates { get; }
     }
 
     public static class PtServiceRegistry

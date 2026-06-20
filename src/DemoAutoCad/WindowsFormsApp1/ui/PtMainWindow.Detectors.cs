@@ -31,7 +31,7 @@ namespace Demo.ui
 
             cmbHatchPattern.ItemsSource = new[]
             {
-                "SOLID", "ANSI31", "ANSI32", "ANSI37", "AR-SAND"
+               "ANSI31", "SOLID", "ANSI32", "ANSI37", "AR-SAND"
             };
             cmbHatchPattern.SelectedIndex = 1;
 

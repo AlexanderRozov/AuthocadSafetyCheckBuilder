@@ -15,6 +15,7 @@ namespace Demo.Models
         public List<LinkSnapshot> Links { get; set; } = new List<LinkSnapshot>();
         public List<BlockSnapshot> Blocks { get; set; } = new List<BlockSnapshot>();
         public List<DetectorZoneSnapshot> DetectorZones { get; set; } = new List<DetectorZoneSnapshot>();
+        public List<PrecreatedTemplateSnapshot> PrecreatedTemplates { get; set; } = new List<PrecreatedTemplateSnapshot>();
     }
 
     public class TableSnapshot
@@ -91,5 +92,17 @@ namespace Demo.Models
     {
         public double X { get; set; }
         public double Y { get; set; }
+    }
+
+    public class PrecreatedTemplateSnapshot
+    {
+        public string Id { get; set; }
+        public string Name { get; set; }
+        public string BlockName { get; set; }
+        public string SourceFile { get; set; }
+        public double ShapeHalfHeight { get; set; }
+        public string Description { get; set; }
+        public string Code { get; set; }
+        public string PreviewImageBase64 { get; set; }
     }
 }

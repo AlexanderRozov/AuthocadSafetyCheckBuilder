@@ -10,7 +10,9 @@ namespace Demo.Services
             None,
             AddDevice,
             CreateTable,
-            PlaceDetectors
+            PlaceDetectors,
+            CreatePrecreatedTemplate,
+            ImportLegendTable
         }
 
         public static InteractionType Type { get; private set; } = InteractionType.None;
@@ -21,6 +23,7 @@ namespace Demo.Services
         public static double DetectorRadius { get; private set; }
         public static DetectorGridDirection DetectorDirection { get; private set; }
         public static string DetectorHatchPattern { get; private set; }
+        public static string PrecreatedTemplateName { get; private set; }
 
         public static void BeginAddDevice(PlaceDeviceRequest request)
         {
@@ -46,10 +49,22 @@ namespace Demo.Services
             Type = InteractionType.PlaceDetectors;
         }
 
+        public static void BeginCreatePrecreatedTemplate(string templateName)
+        {
+            PrecreatedTemplateName = templateName;
+            Type = InteractionType.CreatePrecreatedTemplate;
+        }
+
+        public static void BeginImportLegendTable()
+        {
+            Type = InteractionType.ImportLegendTable;
+        }
+
         public static void Clear()
         {
             Type = InteractionType.None;
             DeviceRequest = null;
+            PrecreatedTemplateName = null;
         }
     }
 }

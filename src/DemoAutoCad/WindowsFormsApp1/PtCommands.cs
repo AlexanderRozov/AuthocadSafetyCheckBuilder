@@ -45,6 +45,18 @@ namespace AutoCadPlugin.Commands
             ExecutePickDetector();
         }
 
+        [CommandMethod("PTPICKPRECREATE", CommandFlags.Modal | CommandFlags.Interruptible)]
+        public void PickPrecreatedTemplate()
+        {
+            ExecutePickPrecreatedTemplate();
+        }
+
+        [CommandMethod("PTPICKLEGENDTABLE", CommandFlags.Modal | CommandFlags.Interruptible)]
+        public void PickLegendTable()
+        {
+            ExecutePickLegendTable();
+        }
+
         private static void ExecutePickAdd()
         {
             if (PtInteractionSession.Type != PtInteractionSession.InteractionType.AddDevice)
@@ -179,6 +191,96 @@ namespace AutoCadPlugin.Commands
             NotifyInteractionFinished(true);
         }
 
+        private static void ExecutePickPrecreatedTemplate()
+        {
+            if (PtInteractionSession.Type != PtInteractionSession.InteractionType.CreatePrecreatedTemplate)
+                return;
+
+            var templateName = PtInteractionSession.PrecreatedTemplateName;
+            PtInteractionSession.Clear();
+
+            var doc = AcApp.DocumentManager.MdiActiveDocument;
+            if (doc == null || string.IsNullOrWhiteSpace(templateName))
+            {
+                NotifyInteractionFinished(false);
+                return;
+            }
+
+            HidePluginWindow();
+
+            try
+            {
+                var template = PrecreatedBlockService.CreateFromSelection(
+                    doc.Database,
+                    doc.Editor,
+                    templateName);
+
+                if (template == null)
+                {
+                    NotifyInteractionFinished(false);
+                    return;
+                }
+
+                PtPersistenceService.Save(doc.Database, PtDocumentRegistry.GetByDatabase(doc.Database));
+                doc.Editor.WriteMessage($"\nШаблон «{template.Name}» создан (блок {template.BlockName}).");
+                doc.Editor.UpdateScreen();
+            }
+            catch (System.Exception ex)
+            {
+                doc.Editor.WriteMessage($"\nОшибка: {ex.Message}");
+                NotifyInteractionFinished(false);
+                return;
+            }
+
+            NotifyInteractionFinished(true, refreshTemplates: true);
+        }
+
+        private static void ExecutePickLegendTable()
+        {
+            if (PtInteractionSession.Type != PtInteractionSession.InteractionType.ImportLegendTable)
+                return;
+
+            PtInteractionSession.Clear();
+
+            var doc = AcApp.DocumentManager.MdiActiveDocument;
+            if (doc == null)
+            {
+                NotifyInteractionFinished(false);
+                return;
+            }
+
+            HidePluginWindow();
+
+            var tableId = LegendTablePicker.PickTable(doc.Editor);
+            if (!tableId.HasValue)
+            {
+                NotifyInteractionFinished(false);
+                return;
+            }
+
+            try
+            {
+                LegendImportService.ImportResult result = null;
+                DocumentLockHelper.Run((_, db) =>
+                {
+                    result = LegendImportService.ImportFromAutoCadTable(db, tableId.Value);
+                    PtPersistenceService.Save(db, PtDocumentRegistry.GetByDatabase(db));
+                });
+
+                doc.Editor.WriteMessage(
+                    $"\nИмпорт из таблицы: добавлено {result.Imported}, пропущено {result.Skipped}.");
+                doc.Editor.UpdateScreen();
+            }
+            catch (System.Exception ex)
+            {
+                doc.Editor.WriteMessage($"\nОшибка: {ex.Message}");
+                NotifyInteractionFinished(false);
+                return;
+            }
+
+            NotifyInteractionFinished(true, refreshTemplates: true);
+        }
+
         private static void HidePluginWindow()
         {
             if (_window == null)
@@ -196,13 +298,13 @@ namespace AutoCadPlugin.Commands
                 _window.Dispatcher.Invoke(Hide);
         }
 
-        private static void NotifyInteractionFinished(bool success)
+        private static void NotifyInteractionFinished(bool success, bool refreshTemplates = false)
         {
             if (_window == null)
                 return;
 
             _window.Dispatcher.Invoke(new Action(() =>
-                _window.AfterDrawingInteraction(success)));
+                _window.AfterDrawingInteraction(success, refreshTemplates)));
         }
 
         private static void ShowMainWindowNow()

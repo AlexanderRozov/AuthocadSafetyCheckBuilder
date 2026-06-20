@@ -13,6 +13,7 @@ namespace Demo.Models
         public System.Guid? BlockGroupId { get; set; }
         public string CustomLabel { get; set; }
         public Point3d InsertionPoint { get; set; }
+        public double? DetectorRadius { get; set; }
 
         public string Label => string.IsNullOrWhiteSpace(CustomLabel)
             ? $"{DeviceType.Code}-{Number}"

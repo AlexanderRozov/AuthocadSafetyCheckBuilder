@@ -67,10 +67,11 @@ namespace Demo.Services
         {
             var snapshot = new PtDrawingSnapshot
             {
-                Version = 1,
+                Version = 2,
                 ActiveTableId = state.ActiveTableId?.ToString(),
                 TableCounter = state.TableCounter,
                 BlockCounter = state.BlockCounter,
+                ZoneCounter = state.ZoneCounter,
                 NumberCounters = new Dictionary<string, int>(state.NumberCounters)
             };
 
@@ -141,6 +142,24 @@ namespace Demo.Services
                 });
             }
 
+            foreach (var zone in state.DetectorZones)
+            {
+                snapshot.DetectorZones.Add(new DetectorZoneSnapshot
+                {
+                    Id = zone.Id.ToString(),
+                    TableId = zone.TableId.ToString(),
+                    Name = zone.Name,
+                    Boundary = zone.BoundaryPoints.Select(p => new BoundaryPointSnapshot { X = p.X, Y = p.Y }).ToList(),
+                    Radius = zone.Radius,
+                    GridStep = zone.GridStep,
+                    HatchPattern = zone.HatchPattern,
+                    GridDirection = zone.GridDirection.ToString(),
+                    DetectorObjectIds = zone.DetectorObjectIds.Select(id => id.ToString()).ToList(),
+                    BoundaryHandle = GetHandleSafe(zone.BoundaryId),
+                    HatchHandle = GetHandleSafe(zone.HatchId)
+                });
+            }
+
             return snapshot;
         }
 
@@ -163,6 +182,7 @@ namespace Demo.Services
         {
             state.TableCounter = snapshot.TableCounter;
             state.BlockCounter = snapshot.BlockCounter;
+            state.ZoneCounter = snapshot.ZoneCounter;
             state.ActiveTableId = ParseGuid(snapshot.ActiveTableId);
 
             if (snapshot.NumberCounters != null)
@@ -282,7 +302,52 @@ namespace Demo.Services
                     child.ParentObjectId = link.FromObjectId;
             }
 
+            foreach (var zoneDto in snapshot.DetectorZones ?? Enumerable.Empty<DetectorZoneSnapshot>())
+            {
+                var id = ParseGuid(zoneDto.Id);
+                var tableId = ParseGuid(zoneDto.TableId);
+                if (!id.HasValue || !tableId.HasValue)
+                    continue;
+
+                var boundaryId = HandleHelper.FromHandle(db, zoneDto.BoundaryHandle);
+                var hatchId = HandleHelper.FromHandle(db, zoneDto.HatchHandle);
+
+                var detectorIds = new List<Guid>();
+                foreach (var detIdStr in zoneDto.DetectorObjectIds ?? Enumerable.Empty<string>())
+                {
+                    var detId = ParseGuid(detIdStr);
+                    if (detId.HasValue && state.Objects.Any(o => o.InstanceId == detId.Value))
+                        detectorIds.Add(detId.Value);
+                }
+
+                state.DetectorZones.Add(new PtDetectorZone
+                {
+                    Id = id.Value,
+                    TableId = tableId.Value,
+                    Name = zoneDto.Name,
+                    BoundaryPoints = (zoneDto.Boundary ?? new List<BoundaryPointSnapshot>())
+                        .Select(p => new BoundaryPoint(p.X, p.Y)).ToList(),
+                    Radius = zoneDto.Radius,
+                    GridStep = zoneDto.GridStep,
+                    HatchPattern = zoneDto.HatchPattern,
+                    GridDirection = ParseGridDirection(zoneDto.GridDirection),
+                    DetectorObjectIds = detectorIds,
+                    BoundaryId = boundaryId,
+                    HatchId = hatchId
+                });
+            }
+
             RebuildNumberCounters(state);
+        }
+
+        private static DetectorGridDirection ParseGridDirection(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return DetectorGridDirection.Auto;
+
+            return Enum.TryParse(value, out DetectorGridDirection dir)
+                ? dir
+                : DetectorGridDirection.Auto;
         }
 
         private static void RebuildNumberCounters(PtDocumentState state)

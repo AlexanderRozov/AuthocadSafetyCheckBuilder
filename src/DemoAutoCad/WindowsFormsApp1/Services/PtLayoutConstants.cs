@@ -7,6 +7,9 @@ namespace Demo.Services
         public const string LayerDevices = "PT_DEVICES";
         public const string LayerText = "PT_TEXT";
         public const string LayerLinks = "PT_LINKS";
+        public const string LayerDetectorZone = "PT_DETECTOR_ZONE";
+
+        public const double DefaultDetectorRadius = 6.4;
 
         public const double LabelColumnWidth = 42;
         public const double DataColumnWidth = 36;

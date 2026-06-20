@@ -48,6 +48,10 @@ namespace Demo.Services
             {
                 DrawingService.EnsureLayers(tr, db);
 
+                if (session.TableId.IsNull || !HandleHelper.IsValid(tr, session.TableId))
+                    throw new InvalidOperationException(
+                        "Таблица не найдена на чертеже. Создайте таблицу заново.");
+
                 var bt = (BlockTable)tr.GetObject(db.BlockTableId, OpenMode.ForRead);
                 var ms = (BlockTableRecord)tr.GetObject(
                     bt[BlockTableRecord.ModelSpace],

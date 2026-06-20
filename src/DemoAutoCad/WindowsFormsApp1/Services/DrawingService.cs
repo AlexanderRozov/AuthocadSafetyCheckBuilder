@@ -3,6 +3,7 @@ using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.Geometry;
 using Demo.Models;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace Demo.Services
@@ -16,6 +17,7 @@ namespace Demo.Services
             EnsureLayer(tr, db, PtLayoutConstants.LayerDevices, 7);
             EnsureLayer(tr, db, PtLayoutConstants.LayerText, 7);
             EnsureLayer(tr, db, PtLayoutConstants.LayerLinks, 3);
+            EnsureLayer(tr, db, PtLayoutConstants.LayerDetectorZone, 8);
         }
 
         private static double GetBlockFitScale(Transaction tr, ObjectId blockId)
@@ -138,8 +140,11 @@ namespace Demo.Services
             return entity.ObjectId;
         }
 
-        public static double GetShapeHalfHeight(BlockTemplate template)
+        public static double GetShapeHalfHeight(BlockTemplate template, double? customRadius = null)
         {
+            if (customRadius.HasValue && (template?.ShapeType ?? DeviceShapeType.Rectangle) == DeviceShapeType.Circle)
+                return customRadius.Value;
+
             var width = PtLayoutConstants.RectangleWidth;
             var height = PtLayoutConstants.RectangleHeight;
             var shapeType = template?.ShapeType ?? DeviceShapeType.Rectangle;
@@ -153,6 +158,9 @@ namespace Demo.Services
                     return height / 2;
             }
         }
+
+        public static double GetShapeHalfHeight(BlockTemplate template) =>
+            GetShapeHalfHeight(template, null);
 
         public static double GetShapeHalfHeight(PtObject obj)
         {
@@ -168,7 +176,8 @@ namespace Demo.Services
             Database db,
             BlockTableRecord ms,
             BlockTemplate template,
-            Point3d center)
+            Point3d center,
+            double? customRadius = null)
         {
             if (template == null)
                 return DrawRectangle(tr, ms, center, PtLayoutConstants.RectangleWidth, PtLayoutConstants.RectangleHeight);
@@ -187,7 +196,7 @@ namespace Demo.Services
                 case DeviceShapeType.Triangle:
                     return DrawTriangle(tr, ms, center, width, height);
                 case DeviceShapeType.Circle:
-                    return DrawCircle(tr, ms, center, side / 2);
+                    return DrawCircle(tr, ms, center, customRadius ?? side / 2);
                 case DeviceShapeType.Diamond:
                     return DrawDiamond(tr, ms, center, width, height);
                 default:
@@ -346,9 +355,9 @@ namespace Demo.Services
                 ? request.FontSize
                 : PtLayoutConstants.DefaultTextHeight;
 
-            var entityId = DrawDeviceShape(tr, db, ms, request.BlockTemplate, center);
+            var entityId = DrawDeviceShape(tr, db, ms, request.BlockTemplate, center, request.DetectorRadius);
 
-            var shapeHalfHeight = GetShapeHalfHeight(request.BlockTemplate);
+            var shapeHalfHeight = GetShapeHalfHeight(request.BlockTemplate, request.DetectorRadius);
             var idOffsetY = shapeHalfHeight + PtLayoutConstants.IdTextOffsetY;
 
             var labelId = DrawMText(
@@ -452,6 +461,65 @@ namespace Demo.Services
             {
                 // entity may already be gone
             }
+        }
+
+        public static ObjectId DrawZoneBoundary(
+            Transaction tr,
+            BlockTableRecord ms,
+            IList<BoundaryPoint> points)
+        {
+            if (points == null || points.Count < 3)
+                return ObjectId.Null;
+
+            var pline = new Polyline(points.Count);
+            for (var i = 0; i < points.Count; i++)
+                pline.AddVertexAt(i, new Point2d(points[i].X, points[i].Y), 0, 0, 0);
+
+            pline.Closed = true;
+            pline.Layer = PtLayoutConstants.LayerDetectorZone;
+            pline.ColorIndex = 8;
+
+            ms.AppendEntity(pline);
+            tr.AddNewlyCreatedDBObject(pline, true);
+            return pline.ObjectId;
+        }
+
+        public static ObjectId DrawZoneHatch(
+            Transaction tr,
+            Database db,
+            BlockTableRecord ms,
+            ObjectId boundaryId,
+            string patternName)
+        {
+            if (boundaryId.IsNull)
+                return ObjectId.Null;
+
+            var hatch = new Hatch();
+            ms.AppendEntity(hatch);
+            tr.AddNewlyCreatedDBObject(hatch, true);
+
+            hatch.SetHatchPattern(HatchPatternType.PreDefined, string.IsNullOrWhiteSpace(patternName) ? "ANSI31" : patternName);
+            hatch.Associative = true;
+            hatch.Layer = PtLayoutConstants.LayerDetectorZone;
+            hatch.ColorIndex = 8;
+
+            var loopIds = new ObjectIdCollection { boundaryId };
+            hatch.AppendLoop(HatchLoopTypes.Default, loopIds);
+            hatch.EvaluateHatch(true);
+
+            return hatch.ObjectId;
+        }
+
+        public static ObjectId RecreateZoneHatch(
+            Transaction tr,
+            Database db,
+            BlockTableRecord ms,
+            ObjectId boundaryId,
+            ObjectId oldHatchId,
+            string patternName)
+        {
+            EraseIfValid(tr, oldHatchId);
+            return DrawZoneHatch(tr, db, ms, boundaryId, patternName);
         }
     }
 }

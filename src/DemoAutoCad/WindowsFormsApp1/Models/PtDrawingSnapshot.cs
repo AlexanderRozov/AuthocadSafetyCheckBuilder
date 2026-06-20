@@ -9,11 +9,13 @@ namespace Demo.Models
         public string ActiveTableId { get; set; }
         public int TableCounter { get; set; }
         public int BlockCounter { get; set; }
+        public int ZoneCounter { get; set; }
         public Dictionary<string, int> NumberCounters { get; set; } = new Dictionary<string, int>();
         public List<TableSnapshot> Tables { get; set; } = new List<TableSnapshot>();
         public List<ObjectSnapshot> Objects { get; set; } = new List<ObjectSnapshot>();
         public List<LinkSnapshot> Links { get; set; } = new List<LinkSnapshot>();
         public List<BlockSnapshot> Blocks { get; set; } = new List<BlockSnapshot>();
+        public List<DetectorZoneSnapshot> DetectorZones { get; set; } = new List<DetectorZoneSnapshot>();
     }
 
     public class TableSnapshot
@@ -69,5 +71,26 @@ namespace Demo.Models
         public string Id { get; set; }
         public string TableId { get; set; }
         public string Name { get; set; }
+    }
+
+    public class DetectorZoneSnapshot
+    {
+        public string Id { get; set; }
+        public string TableId { get; set; }
+        public string Name { get; set; }
+        public List<BoundaryPointSnapshot> Boundary { get; set; } = new List<BoundaryPointSnapshot>();
+        public double Radius { get; set; }
+        public double GridStep { get; set; }
+        public string HatchPattern { get; set; }
+        public string GridDirection { get; set; }
+        public List<string> DetectorObjectIds { get; set; } = new List<string>();
+        public long? BoundaryHandle { get; set; }
+        public long? HatchHandle { get; set; }
+    }
+
+    public class BoundaryPointSnapshot
+    {
+        public double X { get; set; }
+        public double Y { get; set; }
     }
 }

@@ -12,11 +12,13 @@ namespace Demo.Services
         public List<PtObject> Objects { get; } = new List<PtObject>();
         public List<PtObjectLink> Links { get; } = new List<PtObjectLink>();
         public List<PtObjectBlock> Blocks { get; } = new List<PtObjectBlock>();
+        public List<PtDetectorZone> DetectorZones { get; } = new List<PtDetectorZone>();
         public Dictionary<string, int> NumberCounters { get; } = new Dictionary<string, int>();
 
         public Guid? ActiveTableId { get; set; }
         public int TableCounter { get; set; }
         public int BlockCounter { get; set; }
+        public int ZoneCounter { get; set; }
 
         public void Clear()
         {
@@ -24,10 +26,12 @@ namespace Demo.Services
             Objects.Clear();
             Links.Clear();
             Blocks.Clear();
+            DetectorZones.Clear();
             NumberCounters.Clear();
             ActiveTableId = null;
             TableCounter = 0;
             BlockCounter = 0;
+            ZoneCounter = 0;
         }
     }
 }

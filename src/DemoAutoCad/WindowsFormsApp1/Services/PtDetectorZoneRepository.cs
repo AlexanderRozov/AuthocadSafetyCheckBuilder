@@ -1,22 +1,21 @@
 using Autodesk.AutoCAD.DatabaseServices;
+using Demo.Abstractions;
 using Demo.Models;
+using Demo.Services.Infrastructure;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace Demo.Services
 {
     public static class PtDetectorZoneRepository
     {
-        private static PtDocumentState State => PtDocumentRegistry.Current;
+        private static IPtDetectorZoneRepository Impl => PtServiceRegistry.Current.DetectorZones;
 
-        public static IReadOnlyList<PtDetectorZone> All => State.DetectorZones;
+        public static IReadOnlyList<PtDetectorZone> All => Impl.All;
 
-        public static IEnumerable<PtDetectorZone> GetByTable(Guid tableId) =>
-            State.DetectorZones.Where(z => z.TableId == tableId);
+        public static IEnumerable<PtDetectorZone> GetByTable(Guid tableId) => Impl.GetByTable(tableId);
 
-        public static PtDetectorZone Get(Guid id) =>
-            State.DetectorZones.FirstOrDefault(z => z.Id == id);
+        public static PtDetectorZone Get(Guid id) => Impl.Get(id);
 
         public static PtDetectorZone Create(
             Guid tableId,
@@ -27,40 +26,13 @@ namespace Demo.Services
             DetectorGridDirection gridDirection,
             ObjectId boundaryId,
             ObjectId hatchId,
-            IList<Guid> detectorObjectIds)
-        {
-            State.ZoneCounter++;
-            var zone = new PtDetectorZone
-            {
-                Id = Guid.NewGuid(),
-                TableId = tableId,
-                Name = $"Зона {State.ZoneCounter}",
-                BoundaryPoints = boundary?.ToList() ?? new List<BoundaryPoint>(),
-                Radius = radius,
-                GridStep = gridStep,
-                HatchPattern = hatchPattern,
-                GridDirection = gridDirection,
-                BoundaryId = boundaryId,
-                HatchId = hatchId,
-                DetectorObjectIds = detectorObjectIds?.ToList() ?? new List<Guid>()
-            };
-            State.DetectorZones.Add(zone);
-            return zone;
-        }
+            IList<Guid> detectorObjectIds) =>
+            Impl.Create(tableId, boundary, radius, gridStep, hatchPattern, gridDirection,
+                boundaryId, hatchId, detectorObjectIds);
 
-        public static void Remove(Guid zoneId)
-        {
-            State.DetectorZones.RemoveAll(z => z.Id == zoneId);
-        }
+        public static void Remove(Guid zoneId) => Impl.Remove(zoneId);
 
-        public static void UpdateHatchPattern(Guid zoneId, string pattern, ObjectId newHatchId)
-        {
-            var zone = Get(zoneId);
-            if (zone == null)
-                return;
-
-            zone.HatchPattern = pattern;
-            zone.HatchId = newHatchId;
-        }
+        public static void UpdateHatchPattern(Guid zoneId, string pattern, ObjectId newHatchId) =>
+            Impl.UpdateHatchPattern(zoneId, pattern, newHatchId);
     }
 }

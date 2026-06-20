@@ -1,136 +1,49 @@
+using Demo.Abstractions;
 using Demo.Models;
+using Demo.Services.Infrastructure;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace Demo.Services
 {
     public static class PtObjectRepository
     {
-        private static PtDocumentState State => PtDocumentRegistry.Current;
+        private static IPtObjectRepository Impl => PtServiceRegistry.Current.Objects;
 
-        public static IReadOnlyList<PtObject> All => State.Objects;
+        public static IReadOnlyList<PtObject> All => Impl.All;
 
-        public static IReadOnlyList<PtObjectLink> AllLinks => State.Links;
+        public static IReadOnlyList<PtObjectLink> AllLinks => Impl.AllLinks;
 
-        public static IEnumerable<PtObject> GetByTable(Guid tableId) =>
-            State.Objects.Where(o => o.TableId == tableId).OrderBy(o => o.ColumnIndex);
+        public static IEnumerable<PtObject> GetByTable(Guid tableId) => Impl.GetByTable(tableId);
 
-        public static PtObject Get(Guid id) =>
-            State.Objects.FirstOrDefault(o => o.InstanceId == id);
+        public static PtObject Get(Guid id) => Impl.Get(id);
 
-        public static string GetNextNumber(string code)
-        {
-            if (!State.NumberCounters.ContainsKey(code))
-                State.NumberCounters[code] = 1;
+        public static string GetNextNumber(string code) => Impl.GetNextNumber(code);
 
-            var number = State.NumberCounters[code];
-            State.NumberCounters[code] = number + 1;
-            return number.ToString("D3");
-        }
+        public static string PeekNextNumber(string code) => Impl.PeekNextNumber(code);
 
-        public static string PeekNextNumber(string code)
-        {
-            if (!State.NumberCounters.ContainsKey(code))
-                return "001";
+        public static void Add(PtObject ptObject) => Impl.Add(ptObject);
 
-            return State.NumberCounters[code].ToString("D3");
-        }
+        public static PtObjectLink AddLink(Guid tableId, Guid fromId, Guid toId) =>
+            Impl.AddLink(tableId, fromId, toId);
 
-        public static void Add(PtObject ptObject)
-        {
-            State.Objects.Add(ptObject);
-        }
+        public static void RemoveIncomingLinks(Guid toObjectId) =>
+            Impl.RemoveIncomingLinks(toObjectId);
 
-        public static PtObjectLink AddLink(Guid tableId, Guid fromId, Guid toId)
-        {
-            RemoveIncomingLinks(toId);
+        public static bool WouldCreateParentCycle(Guid fromId, Guid toId) =>
+            Impl.WouldCreateParentCycle(fromId, toId);
 
-            var link = new PtObjectLink
-            {
-                Id = Guid.NewGuid(),
-                TableId = tableId,
-                FromObjectId = fromId,
-                ToObjectId = toId
-            };
-            State.Links.Add(link);
+        public static void RemoveLinksForObject(Guid objectId) =>
+            Impl.RemoveLinksForObject(objectId);
 
-            var child = Get(toId);
-            if (child != null)
-                child.ParentObjectId = fromId;
+        public static void Remove(PtObject obj) => Impl.Remove(obj);
 
-            return link;
-        }
+        public static void ClearParentReference(Guid parentId) =>
+            Impl.ClearParentReference(parentId);
 
-        public static void RemoveIncomingLinks(Guid toObjectId)
-        {
-            State.Links.RemoveAll(l => l.ToObjectId == toObjectId);
-            var child = Get(toObjectId);
-            if (child != null)
-                child.ParentObjectId = null;
-        }
+        public static void SetColumnOrder(Guid tableId, IReadOnlyList<Guid> orderedIds) =>
+            Impl.SetColumnOrder(tableId, orderedIds);
 
-        public static bool WouldCreateParentCycle(Guid fromId, Guid toId)
-        {
-            if (fromId == toId)
-                return true;
-
-            var current = Get(fromId);
-            var visited = new HashSet<Guid>();
-            while (current != null)
-            {
-                if (current.InstanceId == toId)
-                    return true;
-
-                if (!current.ParentObjectId.HasValue)
-                    break;
-
-                if (!visited.Add(current.ParentObjectId.Value))
-                    break;
-
-                current = Get(current.ParentObjectId.Value);
-            }
-
-            return false;
-        }
-
-        public static void RemoveLinksForObject(Guid objectId)
-        {
-            State.Links.RemoveAll(l => l.FromObjectId == objectId || l.ToObjectId == objectId);
-        }
-
-        public static void Remove(PtObject obj)
-        {
-            if (obj == null)
-                return;
-
-            RemoveLinksForObject(obj.InstanceId);
-            State.Objects.Remove(obj);
-        }
-
-        public static void ClearParentReference(Guid parentId)
-        {
-            foreach (var child in State.Objects.Where(o => o.ParentObjectId == parentId))
-                child.ParentObjectId = null;
-        }
-
-        public static void SetColumnOrder(Guid tableId, IReadOnlyList<Guid> orderedIds)
-        {
-            for (var i = 0; i < orderedIds.Count; i++)
-            {
-                var obj = Get(orderedIds[i]);
-                if (obj != null && obj.TableId == tableId)
-                    obj.ColumnIndex = i + 1;
-            }
-        }
-
-        public static string GetBlockName(PtObject obj)
-        {
-            if (!obj.BlockGroupId.HasValue)
-                return string.Empty;
-
-            var block = PtBlockRepository.Get(obj.BlockGroupId.Value);
-            return block?.Name ?? string.Empty;
-        }
+        public static string GetBlockName(PtObject obj) => Impl.GetBlockName(obj);
     }
 }

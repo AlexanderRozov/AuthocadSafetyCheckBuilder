@@ -9,6 +9,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Threading;
 
 namespace Demo.ui
 {
@@ -826,38 +827,85 @@ namespace Demo.ui
 
         private void DgvDevices_OnCellEditEnding(object sender, DataGridCellEditEndingEventArgs e)
         {
+            if (e.EditAction == DataGridEditAction.Cancel)
+                return;
+
             if (!(e.Row.Item is DeviceGridRow row))
                 return;
 
-            var obj = PtObjectRepository.Get(row.InstanceId);
-            if (obj == null)
-                return;
-
             var columnHeader = e.Column.Header as string;
+            var editedText = (e.EditingElement as TextBox)?.Text;
 
             dgvDevices.Dispatcher.BeginInvoke(new Action(() =>
             {
-                if (columnHeader == "Подпись")
-                {
-                    obj.Label = row.Label?.Trim() ?? obj.Label;
-                    row.Label = obj.Label;
-                }
-                else
-                {
-                    obj.Code = row.Code ?? obj.Code;
-                    obj.Number = row.Number ?? obj.Number;
-                    obj.FullName = row.FullName ?? obj.FullName;
-                    obj.FdCode = row.FdCode ?? obj.FdCode;
-                    obj.JsCode = row.JsCode ?? obj.JsCode;
-                }
+                dgvDevices.CommitEdit(DataGridEditingUnit.Cell, true);
+                dgvDevices.CommitEdit(DataGridEditingUnit.Row, true);
 
-                DocumentLockHelper.Run((lockedDoc, db) =>
+                var obj = PtObjectRepository.Get(row.InstanceId);
+                if (obj == null)
+                    return;
+
+                ApplyGridRowEdit(row, obj, columnHeader, editedText);
+
+                try
                 {
-                    PtLayoutManager.SyncObjectToDrawing(db, obj);
-                    lockedDoc.Editor.Regen();
-                });
-                RefreshLinksTab();
-            }));
+                    DocumentLockHelper.Run((lockedDoc, db) =>
+                    {
+                        PtLayoutManager.SyncObjectToDrawing(db, obj);
+                        lockedDoc.Editor.Regen();
+                    });
+                    RefreshLinksTab();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message, "Синхронизация", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }), DispatcherPriority.Background);
+        }
+
+        private static void ApplyGridRowEdit(
+            DeviceGridRow row,
+            PtObject obj,
+            string columnHeader,
+            string editedText)
+        {
+            if (!string.IsNullOrEmpty(editedText))
+            {
+                switch (columnHeader)
+                {
+                    case "Подпись":
+                        row.Label = editedText.Trim();
+                        break;
+                    case "Код":
+                        row.Code = editedText.Trim();
+                        break;
+                    case "Номер":
+                        row.Number = editedText.Trim();
+                        break;
+                    case "Наименование":
+                        row.FullName = editedText.Trim();
+                        break;
+                    case "FD":
+                        row.FdCode = editedText.Trim();
+                        break;
+                    case "JS05":
+                        row.JsCode = editedText.Trim();
+                        break;
+                }
+            }
+
+            obj.Label = row.Label ?? obj.Label;
+            obj.Code = row.Code ?? obj.Code;
+            obj.Number = row.Number ?? obj.Number;
+            obj.FullName = row.FullName ?? obj.FullName;
+            obj.FdCode = row.FdCode ?? obj.FdCode;
+            obj.JsCode = row.JsCode ?? obj.JsCode;
+
+            if (columnHeader == "Код" || columnHeader == "Номер")
+            {
+                obj.Label = $"{obj.Code}-{obj.Number}";
+                row.Label = obj.Label;
+            }
         }
 
         private void HideForDrawingAction()

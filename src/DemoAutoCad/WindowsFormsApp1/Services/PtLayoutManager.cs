@@ -2,7 +2,6 @@ using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.Geometry;
 using Demo.Models;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 
 namespace Demo.Services
@@ -221,34 +220,37 @@ namespace Demo.Services
         public static void SyncObjectToDrawing(Database db, PtObject obj)
         {
             var session = PtTableRepository.Get(obj.TableId);
-            if (session == null || session.TableId.IsNull)
+            if (session == null)
                 return;
 
             using (var tr = db.TransactionManager.StartTransaction())
             {
-                var table = (Table)tr.GetObject(session.TableId, OpenMode.ForWrite);
-                var col = obj.ColumnIndex;
-                if (col < table.Columns.Count)
+                if (!session.TableId.IsNull && HandleHelper.IsValid(tr, session.TableId))
                 {
-                    table.Cells[0, col].TextString = obj.ColumnNumber.ToString();
-                    table.Cells[1, col].TextString = obj.FdCode;
-                    table.Cells[2, col].TextString = obj.JsCode;
-                    table.Cells[3, col].TextString = obj.Code;
-                    table.Cells[4, col].TextString = obj.Number;
-                    table.Cells[5, col].TextString = obj.FullName;
-                    if (table.Rows.Count > 6)
-                        table.Cells[6, col].TextString = PtObjectRepository.GetBlockName(obj);
-                    StyleColumnCells(table, col);
+                    var table = (Table)tr.GetObject(session.TableId, OpenMode.ForWrite);
+                    var col = obj.ColumnIndex;
+                    if (col > 0 && col < table.Columns.Count)
+                    {
+                        table.Cells[0, col].TextString = obj.ColumnNumber.ToString();
+                        table.Cells[1, col].TextString = obj.FdCode ?? string.Empty;
+                        table.Cells[2, col].TextString = obj.JsCode ?? string.Empty;
+                        table.Cells[3, col].TextString = obj.Code ?? string.Empty;
+                        table.Cells[4, col].TextString = obj.Number ?? string.Empty;
+                        table.Cells[5, col].TextString = obj.FullName ?? string.Empty;
+                        if (table.Rows.Count > 6)
+                            table.Cells[6, col].TextString = PtObjectRepository.GetBlockName(obj);
+                        StyleColumnCells(table, col);
+                    }
                 }
 
-                if (!obj.LabelTextId.IsNull)
+                if (!obj.LabelTextId.IsNull && HandleHelper.IsValid(tr, obj.LabelTextId))
                 {
                     var label = (MText)tr.GetObject(obj.LabelTextId, OpenMode.ForWrite);
-                    label.Contents = obj.Label;
+                    label.Contents = obj.Label ?? string.Empty;
                     label.TextHeight = obj.FontSize;
                 }
 
-                if (!obj.IdTextId.IsNull)
+                if (!obj.IdTextId.IsNull && HandleHelper.IsValid(tr, obj.IdTextId))
                 {
                     var idText = (MText)tr.GetObject(obj.IdTextId, OpenMode.ForWrite);
                     idText.Contents = $"*-{obj.Code}-{obj.Number}";

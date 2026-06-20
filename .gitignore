@@ -132,7 +132,8 @@ coverage*.info
 # Visual Studio code coverage results
 *.coverage
 *.coveragexml
-
+#Object
+[Oo]bj*/
 # Publish Web Output
 *.[Pp]ublish.xml
 *.azurePubxml

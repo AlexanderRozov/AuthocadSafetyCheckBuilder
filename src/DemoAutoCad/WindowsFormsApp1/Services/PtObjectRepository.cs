@@ -7,41 +7,39 @@ namespace Demo.Services
 {
     public static class PtObjectRepository
     {
-        private static readonly List<PtObject> Objects = new List<PtObject>();
-        private static readonly List<PtObjectLink> Links = new List<PtObjectLink>();
-        private static readonly Dictionary<string, int> NumberCounters = new Dictionary<string, int>();
+        private static PtDocumentState State => PtDocumentRegistry.Current;
 
-        public static IReadOnlyList<PtObject> All => Objects;
+        public static IReadOnlyList<PtObject> All => State.Objects;
 
-        public static IReadOnlyList<PtObjectLink> AllLinks => Links;
+        public static IReadOnlyList<PtObjectLink> AllLinks => State.Links;
 
         public static IEnumerable<PtObject> GetByTable(Guid tableId) =>
-            Objects.Where(o => o.TableId == tableId).OrderBy(o => o.ColumnIndex);
+            State.Objects.Where(o => o.TableId == tableId).OrderBy(o => o.ColumnIndex);
 
         public static PtObject Get(Guid id) =>
-            Objects.FirstOrDefault(o => o.InstanceId == id);
+            State.Objects.FirstOrDefault(o => o.InstanceId == id);
 
         public static string GetNextNumber(string code)
         {
-            if (!NumberCounters.ContainsKey(code))
-                NumberCounters[code] = 1;
+            if (!State.NumberCounters.ContainsKey(code))
+                State.NumberCounters[code] = 1;
 
-            var number = NumberCounters[code];
-            NumberCounters[code] = number + 1;
+            var number = State.NumberCounters[code];
+            State.NumberCounters[code] = number + 1;
             return number.ToString("D3");
         }
 
         public static string PeekNextNumber(string code)
         {
-            if (!NumberCounters.ContainsKey(code))
+            if (!State.NumberCounters.ContainsKey(code))
                 return "001";
 
-            return NumberCounters[code].ToString("D3");
+            return State.NumberCounters[code].ToString("D3");
         }
 
         public static void Add(PtObject ptObject)
         {
-            Objects.Add(ptObject);
+            State.Objects.Add(ptObject);
         }
 
         public static PtObjectLink AddLink(Guid tableId, Guid fromId, Guid toId)
@@ -55,7 +53,7 @@ namespace Demo.Services
                 FromObjectId = fromId,
                 ToObjectId = toId
             };
-            Links.Add(link);
+            State.Links.Add(link);
 
             var child = Get(toId);
             if (child != null)
@@ -66,7 +64,7 @@ namespace Demo.Services
 
         public static void RemoveIncomingLinks(Guid toObjectId)
         {
-            Links.RemoveAll(l => l.ToObjectId == toObjectId);
+            State.Links.RemoveAll(l => l.ToObjectId == toObjectId);
             var child = Get(toObjectId);
             if (child != null)
                 child.ParentObjectId = null;
@@ -98,7 +96,7 @@ namespace Demo.Services
 
         public static void RemoveLinksForObject(Guid objectId)
         {
-            Links.RemoveAll(l => l.FromObjectId == objectId || l.ToObjectId == objectId);
+            State.Links.RemoveAll(l => l.FromObjectId == objectId || l.ToObjectId == objectId);
         }
 
         public static void Remove(PtObject obj)
@@ -107,12 +105,12 @@ namespace Demo.Services
                 return;
 
             RemoveLinksForObject(obj.InstanceId);
-            Objects.Remove(obj);
+            State.Objects.Remove(obj);
         }
 
         public static void ClearParentReference(Guid parentId)
         {
-            foreach (var child in Objects.Where(o => o.ParentObjectId == parentId))
+            foreach (var child in State.Objects.Where(o => o.ParentObjectId == parentId))
                 child.ParentObjectId = null;
         }
 

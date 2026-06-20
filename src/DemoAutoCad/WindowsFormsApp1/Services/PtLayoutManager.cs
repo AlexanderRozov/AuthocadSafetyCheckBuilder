@@ -33,6 +33,7 @@ namespace Demo.Services
                 tr.Commit();
             }
 
+            Persist(db);
             return session;
         }
 
@@ -41,6 +42,8 @@ namespace Demo.Services
             var session = PtTableRepository.Get(request.TableId);
             if (session == null)
                 throw new System.InvalidOperationException("Таблица не найдена.");
+
+            PtObject ptObject;
 
             using (var tr = db.TransactionManager.StartTransaction())
             {
@@ -64,7 +67,7 @@ namespace Demo.Services
                     AppendTableColumn(table, request, columnNumber, fdNumber);
 
                 var center = request.InsertionPoint;
-                var ptObject = DrawingService.DrawDevice(
+                ptObject = DrawingService.DrawDevice(
                     tr, db, ms, request, center, dataColumnIndex, session.Id);
 
                 ptObject.ColumnNumber = columnNumber;
@@ -83,8 +86,10 @@ namespace Demo.Services
                 }
 
                 tr.Commit();
-                return ptObject;
             }
+
+            Persist(db);
+            return ptObject;
         }
 
         public static void CreateObjectLink(Database db, Guid tableId, Guid fromId, Guid toId)
@@ -121,6 +126,8 @@ namespace Demo.Services
 
                 tr.Commit();
             }
+
+            Persist(db);
         }
 
         private static void CreateObjectLink(
@@ -172,6 +179,7 @@ namespace Demo.Services
             PtObjectRepository.ClearParentReference(obj.InstanceId);
             PtObjectRepository.Remove(obj);
             SyncTableColumnOrder(db, tableId);
+            Persist(db);
         }
 
         public static void SyncTableColumnOrder(Database db, Guid tableId)
@@ -206,6 +214,8 @@ namespace Demo.Services
                 StyleTable(table);
                 tr.Commit();
             }
+
+            Persist(db);
         }
 
         public static void SyncObjectToDrawing(Database db, PtObject obj)
@@ -247,6 +257,13 @@ namespace Demo.Services
 
                 tr.Commit();
             }
+
+            Persist(db);
+        }
+
+        private static void Persist(Database db)
+        {
+            PtPersistenceService.Save(db, PtDocumentRegistry.GetByDatabase(db));
         }
 
         private static Table CreateEmptyTable(Transaction tr, Database db, Point3d origin)

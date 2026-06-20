@@ -7,36 +7,34 @@ namespace Demo.Services
 {
     public static class PtTableRepository
     {
-        private static readonly List<PtTableSession> Tables = new List<PtTableSession>();
-        private static Guid? _activeTableId;
-        private static int _tableCounter;
+        private static PtDocumentState State => PtDocumentRegistry.Current;
 
-        public static IReadOnlyList<PtTableSession> All => Tables;
+        public static IReadOnlyList<PtTableSession> All => State.Tables;
 
         public static PtTableSession ActiveTable =>
-            _activeTableId.HasValue
-                ? Tables.FirstOrDefault(t => t.Id == _activeTableId.Value)
+            State.ActiveTableId.HasValue
+                ? State.Tables.FirstOrDefault(t => t.Id == State.ActiveTableId.Value)
                 : null;
 
         public static void SetActive(Guid tableId)
         {
-            _activeTableId = tableId;
+            State.ActiveTableId = tableId;
         }
 
         public static PtTableSession Create(string name)
         {
-            _tableCounter++;
+            State.TableCounter++;
             var table = new PtTableSession
             {
                 Id = Guid.NewGuid(),
-                Name = string.IsNullOrEmpty(name) ? $"Таблица {_tableCounter}" : name
+                Name = string.IsNullOrEmpty(name) ? $"Таблица {State.TableCounter}" : name
             };
-            Tables.Add(table);
-            _activeTableId = table.Id;
+            State.Tables.Add(table);
+            State.ActiveTableId = table.Id;
             return table;
         }
 
         public static PtTableSession Get(Guid id) =>
-            Tables.FirstOrDefault(t => t.Id == id);
+            State.Tables.FirstOrDefault(t => t.Id == id);
     }
 }

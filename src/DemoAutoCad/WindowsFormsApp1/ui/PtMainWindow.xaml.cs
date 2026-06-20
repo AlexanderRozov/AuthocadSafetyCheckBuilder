@@ -27,8 +27,19 @@ namespace Demo.ui
                 e.Cancel = true;
                 Hide();
             };
+            PtDocumentRegistry.DocumentDataLoaded += OnDocumentDataLoaded;
             LoadCatalogs();
             RefreshTables();
+        }
+
+        public void ReloadFromDocument()
+        {
+            RefreshTables();
+        }
+
+        private void OnDocumentDataLoaded(Autodesk.AutoCAD.ApplicationServices.Document doc)
+        {
+            Dispatcher.BeginInvoke(new Action(RefreshTables));
         }
 
         private void LoadCatalogs()
@@ -724,6 +735,7 @@ namespace Demo.ui
                 return;
 
             PtBlockRepository.Create(table.Id, name);
+            PtDocumentRegistry.Save(Autodesk.AutoCAD.ApplicationServices.Application.DocumentManager.MdiActiveDocument);
             RefreshLinksTab();
         }
 

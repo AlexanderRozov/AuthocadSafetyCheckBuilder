@@ -1,5 +1,6 @@
 ﻿using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.Runtime;
+using Demo.Services;
 using Demo.ui;
 
 namespace AutoCadPlugin.Commands
@@ -26,6 +27,8 @@ namespace AutoCadPlugin.Commands
             if (doc == null)
                 return;
 
+            PtDocumentRegistry.EnsureLoaded(doc);
+
             if (_window == null)
             {
                 _window = new PtMainWindow();
@@ -33,8 +36,8 @@ namespace AutoCadPlugin.Commands
             }
             else
             {
+                _window.ReloadFromDocument();
                 _window.Show();
-                _window.Activate();
             }
         }
     }

@@ -1,8 +1,7 @@
-﻿using Autodesk.AutoCAD.ApplicationServices;
-using Autodesk.AutoCAD.EditorInput;
+﻿using Autodesk.AutoCAD.EditorInput;
 using Autodesk.AutoCAD.Runtime;
-using Demo.Models;
 using Demo.Services;
+using Demo.Services.Infrastructure;
 using Demo.ui;
 using System;
 using System.Windows;
@@ -12,6 +11,8 @@ namespace AutoCadPlugin.Commands
 {
     public class PtCommands
     {
+        private static readonly Demo.Abstractions.ILayoutManager Layout = PtServiceRegistry.LayoutManager;
+
         private static PtMainWindow _window;
 
         [CommandMethod("PLACEPT")]
@@ -73,7 +74,7 @@ namespace AutoCadPlugin.Commands
 
             try
             {
-                var ptObject = PtLayoutManager.AddDevice(doc.Database, request);
+                var ptObject = Layout.AddDevice(doc.Database, request);
                 doc.Editor.WriteMessage($"\nОбъект {ptObject.Label} добавлен в таблицу.");
                 doc.Editor.UpdateScreen();
             }
@@ -112,7 +113,7 @@ namespace AutoCadPlugin.Commands
 
             try
             {
-                var session = PtLayoutManager.CreateTableAtPoint(doc.Database, picked.Value);
+                var session = Layout.CreateTableAtPoint(doc.Database, picked.Value);
                 doc.Editor.WriteMessage($"\nТаблица \"{session.Name}\" создана.");
                 doc.Editor.UpdateScreen();
             }

@@ -25,6 +25,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="database\**" />
+    <EmbeddedResource Remove="database\**" />
+    <None Remove="database\**" />
+    <Page Remove="database\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Reference Include="accoremgd">
       <HintPath>..\..\..\..\Program Files\Autodesk\AutoCAD 2022\accoremgd.dll</HintPath>
       <Private>False</Private>
@@ -52,7 +59,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="database\data.json" />
     <None Include="App.config" />
   </ItemGroup>
 </Project>

@@ -1,8 +1,8 @@
-using Demo.Models;
 using System;
 using System.Collections.Generic;
+using Pt.Models;
 
-namespace Demo.Services
+namespace Pt.Services
 {
     public class PtDocumentState
     {

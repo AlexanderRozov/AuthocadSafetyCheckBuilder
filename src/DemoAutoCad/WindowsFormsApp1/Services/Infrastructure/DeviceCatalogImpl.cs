@@ -1,8 +1,8 @@
-using Demo.Abstractions;
-using Demo.Models;
 using System.Collections.Generic;
+using Pt.Abstractions;
+using Pt.Models;
 
-namespace Demo.Services.Infrastructure
+namespace Pt.Services.Infrastructure
 {
     public sealed class DeviceCatalogImpl : IDeviceCatalog
     {

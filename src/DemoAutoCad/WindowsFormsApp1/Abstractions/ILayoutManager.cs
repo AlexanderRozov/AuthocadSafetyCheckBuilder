@@ -1,9 +1,9 @@
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.Geometry;
-using Demo.Models;
 using System;
+using Pt.Models;
 
-namespace Demo.Abstractions
+namespace Pt.Abstractions
 {
     public interface ILayoutManager
     {

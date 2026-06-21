@@ -1,6 +1,6 @@
-using Demo.Models;
+using Pt.Models;
 
-namespace Demo.Abstractions
+namespace Pt.Abstractions
 {
     public interface IHotkeyConfigRepository
     {

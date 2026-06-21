@@ -1,9 +1,9 @@
 using Autodesk.AutoCAD.DatabaseServices;
-using Demo.Models;
 using System;
 using System.Linq;
+using Pt.Models;
 
-namespace Demo.Services.Drawing
+namespace Pt.Services.Drawing
 {
     internal static class EntityEraser
     {

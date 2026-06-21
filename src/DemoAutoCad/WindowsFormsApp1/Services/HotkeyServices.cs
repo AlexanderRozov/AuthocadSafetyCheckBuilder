@@ -1,9 +1,9 @@
-using Demo.Abstractions;
-using Demo.Models;
-using Demo.Services.Hotkeys;
-using Demo.Services.Infrastructure;
+using Pt.Abstractions;
+using Pt.Models;
+using Pt.Services.Hotkeys;
+using Pt.Services.Infrastructure;
 
-namespace Demo.Services
+namespace Pt.Services
 {
     public static class HotkeyServices
     {

@@ -2,7 +2,7 @@ using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.DatabaseServices;
 using System;
 
-namespace Demo.Services
+namespace Pt.Services
 {
     public static class DocumentLockHelper
     {

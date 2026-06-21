@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using System.Windows.Media.Imaging;
 
-namespace Demo.ui
+namespace Pt.ui
 {
     internal static class PrecreatedPreviewHelper
     {

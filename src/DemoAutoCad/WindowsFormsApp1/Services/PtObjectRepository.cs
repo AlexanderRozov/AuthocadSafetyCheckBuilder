@@ -1,10 +1,10 @@
-using Demo.Abstractions;
-using Demo.Models;
-using Demo.Services.Infrastructure;
 using System;
 using System.Collections.Generic;
+using Pt.Abstractions;
+using Pt.Models;
+using Pt.Services.Infrastructure;
 
-namespace Demo.Services
+namespace Pt.Services
 {
     public static class PtObjectRepository
     {

@@ -1,4 +1,4 @@
-namespace Demo.Services
+namespace Pt.Services
 {
     /// <summary>
     /// Facade so input layer does not reference WPF UI directly.

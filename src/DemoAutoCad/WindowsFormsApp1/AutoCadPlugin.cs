@@ -1,7 +1,7 @@
 ﻿using Autodesk.AutoCAD.Runtime;
 using Autodesk.AutoCAD.ApplicationServices;
-using Demo.Services;
-using Demo.ui;
+using Pt.Services;
+using Pt.ui;
 
 [assembly: ExtensionApplication(typeof(AutoCadPlugin.PluginEntry))]
 [assembly: CommandClass(typeof(AutoCadPlugin.Commands.PtCommands))]

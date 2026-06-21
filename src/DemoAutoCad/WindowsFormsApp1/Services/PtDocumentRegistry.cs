@@ -3,7 +3,7 @@ using Autodesk.AutoCAD.DatabaseServices;
 using System;
 using System.Collections.Generic;
 
-namespace Demo.Services
+namespace Pt.Services
 {
     public static class PtDocumentRegistry
     {

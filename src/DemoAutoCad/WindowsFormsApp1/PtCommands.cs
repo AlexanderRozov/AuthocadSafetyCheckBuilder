@@ -1,8 +1,8 @@
 ﻿using Autodesk.AutoCAD.EditorInput;
 using Autodesk.AutoCAD.Runtime;
-using Demo.Services;
-using Demo.Services.Infrastructure;
-using Demo.ui;
+using Pt.Services;
+using Pt.Services.Infrastructure;
+using Pt.ui;
 using System;
 using System.Windows;
 using AcApp = Autodesk.AutoCAD.ApplicationServices.Application;
@@ -11,7 +11,7 @@ namespace AutoCadPlugin.Commands
 {
     public class PtCommands
     {
-        private static readonly Demo.Abstractions.ILayoutManager Layout = PtServiceRegistry.LayoutManager;
+        private static readonly Pt.Abstractions.ILayoutManager Layout = PtServiceRegistry.LayoutManager;
 
         private static PtMainWindow _window;
 

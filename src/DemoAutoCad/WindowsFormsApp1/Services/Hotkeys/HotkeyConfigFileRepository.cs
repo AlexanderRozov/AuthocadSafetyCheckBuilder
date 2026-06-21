@@ -1,10 +1,10 @@
-using Demo.Abstractions;
-using Demo.Models;
 using System;
 using System.IO;
 using System.Web.Script.Serialization;
+using Pt.Abstractions;
+using Pt.Models;
 
-namespace Demo.Services.Hotkeys
+namespace Pt.Services.Hotkeys
 {
     public sealed class HotkeyConfigFileRepository : IHotkeyConfigRepository
     {

@@ -1,11 +1,11 @@
 using Autodesk.AutoCAD.DatabaseServices;
-using Demo.Abstractions;
-using Demo.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Pt.Abstractions;
+using Pt.Models;
 
-namespace Demo.Services.Infrastructure
+namespace Pt.Services.Infrastructure
 {
     public sealed class PtDetectorZoneRepositoryImpl : IPtDetectorZoneRepository
     {

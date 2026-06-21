@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Windows.Forms;
 
-namespace Demo.Services.Hotkeys
+namespace Pt.Services.Hotkeys
 {
     internal static class HotkeyVirtualKey
     {

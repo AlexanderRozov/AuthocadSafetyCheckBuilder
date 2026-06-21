@@ -5,7 +5,7 @@ using System.Windows.Media;
 using System.Windows.Interop;
 using AcApp = Autodesk.AutoCAD.ApplicationServices.Application;
 
-namespace Demo.ui
+namespace Pt.ui
 {
     /// <summary>
     /// Small always-on-top bar — visible while hotkey pick mode is active (does not steal focus).

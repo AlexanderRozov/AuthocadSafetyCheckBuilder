@@ -2,7 +2,7 @@ using Autodesk.AutoCAD.EditorInput;
 using Autodesk.AutoCAD.Geometry;
 using System.Collections.Generic;
 
-namespace Demo.Services
+namespace Pt.Services
 {
     public static class DetectorAreaPicker
     {

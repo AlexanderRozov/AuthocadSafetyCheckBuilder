@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace Demo.Models
+namespace Pt.Models
 {
     public class PtDrawingSnapshot
     {

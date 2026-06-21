@@ -1,6 +1,6 @@
-using Demo.Abstractions;
+using Pt.Abstractions;
 
-namespace Demo.Services.Infrastructure
+namespace Pt.Services.Infrastructure
 {
     public sealed class PtServices
     {

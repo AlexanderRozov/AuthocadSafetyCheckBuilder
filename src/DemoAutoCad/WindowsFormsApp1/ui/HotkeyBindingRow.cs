@@ -1,7 +1,7 @@
-using Demo.Models;
 using System.Collections.Generic;
+using Pt.Models;
 
-namespace Demo.ui
+namespace Pt.ui
 {
     public sealed class HotkeyBindingRow
     {

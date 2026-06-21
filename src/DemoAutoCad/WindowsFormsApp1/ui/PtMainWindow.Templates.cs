@@ -1,13 +1,13 @@
-using Demo.Models;
-using Demo.Services;
 using Microsoft.Win32;
 using System;
 using System.Linq;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
+using Pt.Models;
+using Pt.Services;
 
-namespace Demo.ui
+namespace Pt.ui
 {
     public partial class PtMainWindow
     {

@@ -1,6 +1,6 @@
 using System;
 
-namespace Demo.Models
+namespace Pt.Models
 {
     public class PtObjectBlock
     {

@@ -1,6 +1,6 @@
 using Autodesk.AutoCAD.Geometry;
 
-namespace Demo.Models
+namespace Pt.Models
 {
     public class PlaceDeviceRequest
     {

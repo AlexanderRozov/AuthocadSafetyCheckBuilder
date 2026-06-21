@@ -1,4 +1,4 @@
-namespace Demo.Models
+namespace Pt.Models
 {
     public enum DeviceShapeType
     {

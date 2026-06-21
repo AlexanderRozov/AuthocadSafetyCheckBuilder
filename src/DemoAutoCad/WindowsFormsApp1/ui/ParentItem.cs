@@ -1,6 +1,6 @@
 using System;
 
-namespace Demo.ui
+namespace Pt.ui
 {
     public class ParentItem
     {

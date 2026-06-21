@@ -1,7 +1,7 @@
 using Autodesk.AutoCAD.DatabaseServices;
 using System;
 
-namespace Demo.Models
+namespace Pt.Models
 {
     public class PtObjectLink
     {

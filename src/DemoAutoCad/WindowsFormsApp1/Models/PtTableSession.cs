@@ -2,7 +2,7 @@ using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.Geometry;
 using System;
 
-namespace Demo.Models
+namespace Pt.Models
 {
     public class PtTableSession
     {

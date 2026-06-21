@@ -2,7 +2,7 @@ using System;
 using System.Runtime.InteropServices;
 using AcApp = Autodesk.AutoCAD.ApplicationServices.Application;
 
-namespace Demo.Services.Hotkeys
+namespace Pt.Services.Hotkeys
 {
     internal static class AutoCadFocusHelper
     {

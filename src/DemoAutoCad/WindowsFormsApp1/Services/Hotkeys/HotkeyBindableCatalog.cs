@@ -1,10 +1,10 @@
-using Demo.Abstractions;
-using Demo.Models;
-using Demo.Services.Infrastructure;
+using Pt.Services.Infrastructure;
 using System.Collections.Generic;
 using System.Linq;
+using Pt.Abstractions;
+using Pt.Models;
 
-namespace Demo.Services.Hotkeys
+namespace Pt.Services.Hotkeys
 {
     public sealed class HotkeyBindableCatalog : IHotkeyBindableCatalog
     {

@@ -1,13 +1,13 @@
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.Geometry;
-using Demo.Models;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Pt.Models;
 
-namespace Demo.Services
+namespace Pt.Services
 {
     public static class DetectorPlacementService
     {

@@ -1,7 +1,7 @@
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.EditorInput;
 
-namespace Demo.Services
+namespace Pt.Services
 {
     public static class LegendTablePicker
     {

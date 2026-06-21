@@ -1,7 +1,7 @@
 using Autodesk.AutoCAD.Colors;
 using Autodesk.AutoCAD.DatabaseServices;
 
-namespace Demo.Services.Drawing
+namespace Pt.Services.Drawing
 {
     internal static class LayerSetup
     {

@@ -1,7 +1,7 @@
 using Autodesk.AutoCAD.ApplicationServices;
 using System;
 
-namespace Demo.Services
+namespace Pt.Services
 {
     public static class PtInteractionScheduler
     {

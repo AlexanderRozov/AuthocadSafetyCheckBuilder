@@ -1,5 +1,3 @@
-using Demo.Models;
-using Demo.Services;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,9 +5,11 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
+using Pt.Models;
+using Pt.Services;
 using FormsKeys = System.Windows.Forms.Keys;
 
-namespace Demo.ui
+namespace Pt.ui
 {
     public partial class PtMainWindow
     {

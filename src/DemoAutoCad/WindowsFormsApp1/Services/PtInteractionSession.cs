@@ -1,7 +1,7 @@
-using Demo.Models;
 using System;
+using Pt.Models;
 
-namespace Demo.Services
+namespace Pt.Services
 {
     public static class PtInteractionSession
     {

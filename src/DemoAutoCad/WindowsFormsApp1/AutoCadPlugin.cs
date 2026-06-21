@@ -1,6 +1,7 @@
 ﻿using Autodesk.AutoCAD.Runtime;
 using Autodesk.AutoCAD.ApplicationServices;
 using Demo.Services;
+using Demo.ui;
 
 [assembly: ExtensionApplication(typeof(AutoCadPlugin.PluginEntry))]
 [assembly: CommandClass(typeof(AutoCadPlugin.Commands.PtCommands))]
@@ -19,10 +20,24 @@ namespace AutoCadPlugin
             var doc = Application.DocumentManager.MdiActiveDocument;
             if (doc != null)
                 PtDocumentRegistry.EnsureLoaded(doc);
+
+            HotkeyServices.InputController.SelectionApplied += HotkeyServices.NotifySelection;
+            HotkeyServices.InputController.Attach();
+
+            HotkeyArmedIndicator.ShowHandler = (message, timeout) =>
+                HotkeyArmedIndicatorWindow.ShowIndicator(message, timeout);
+            HotkeyArmedIndicator.HideHandler = HotkeyArmedIndicatorWindow.HideIndicator;
         }
 
         public void Terminate()
         {
+            HotkeyArmedIndicator.ShowHandler = null;
+            HotkeyArmedIndicator.HideHandler = null;
+            HotkeyArmedIndicator.HideIndicator();
+
+            HotkeyServices.InputController.SelectionApplied -= HotkeyServices.NotifySelection;
+            HotkeyServices.InputController.Detach();
+
             Application.DocumentManager.DocumentActivated -= OnDocumentActivated;
             Application.DocumentManager.DocumentToBeDestroyed -= OnDocumentToBeDestroyed;
         }

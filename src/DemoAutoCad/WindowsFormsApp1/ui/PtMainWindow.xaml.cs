@@ -9,6 +9,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
+using FormsKeys = System.Windows.Forms.Keys;
 
 namespace Demo.ui
 {
@@ -22,6 +23,7 @@ namespace Demo.ui
         public PtMainWindow()
         {
             InitializeComponent();
+            PreviewKeyDown += PtMainWindow_OnPreviewKeyDown;
             Closing += (_, e) =>
             {
                 e.Cancel = true;
@@ -31,13 +33,31 @@ namespace Demo.ui
             LoadCatalogs();
             InitDetectorTab();
             InitTemplatesTab();
+            InitHotkeysTab();
             RefreshTables();
+            ApplyPendingHotkeySelection();
+        }
+
+        private void PtMainWindow_OnPreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (!HotkeyServices.InputController.IsArmed)
+                return;
+
+            if (e.Key == Key.LeftAlt || e.Key == Key.RightAlt || e.Key == Key.LeftCtrl || e.Key == Key.RightCtrl ||
+                e.Key == Key.LeftShift || e.Key == Key.RightShift)
+                return;
+
+            var wpfKey = e.Key == Key.System ? e.SystemKey : e.Key;
+            var virtualKey = System.Windows.Input.KeyInterop.VirtualKeyFromKey(wpfKey);
+            if (HotkeyServices.InputController.TryProcessKey((FormsKeys)virtualKey))
+                e.Handled = true;
         }
 
         public void ReloadFromDocument()
         {
             RefreshTables();
             RefreshTemplatesTab();
+            ApplyPendingHotkeySelection();
         }
 
         public void AfterDrawingInteraction(bool success, bool refreshTemplates = false)

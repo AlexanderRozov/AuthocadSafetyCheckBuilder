@@ -11,6 +11,15 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
+        <Border x:Name="borderHotkeyArmedBanner" Grid.RowSpan="2" VerticalAlignment="Top"
+                Background="#E67E22" BorderBrush="#B45A14" BorderThickness="2"
+                CornerRadius="4" Padding="10,8" Margin="0,0,0,8"
+                Visibility="Collapsed" Panel.ZIndex="100">
+            <TextBlock x:Name="txtHotkeyArmedBanner" Foreground="White" FontWeight="Bold"
+                       TextWrapping="Wrap" TextAlignment="Center"
+                       Text="ПТ — РЕЖИМ ВЫБОРА: нажмите клавишу элемента или Esc"/>
+        </Border>
+
         <TabControl x:Name="tabMain" Grid.Row="0" SelectionChanged="TabMain_OnSelectionChanged">
             <TabItem Header="Размещение">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
@@ -243,6 +252,75 @@
                         </StackPanel>
                     </Border>
                 </Grid>
+            </TabItem>
+
+            <TabItem Header="Горячие клавиши">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="8">
+                        <TextBlock TextWrapping="Wrap" Foreground="Gray" Margin="0,0,0,8"
+                                   Text="Клавиши работают только в режиме выбора и не мешают AutoCAD в обычной работе. Сначала клавиша входа, затем клавиша элемента. Настройки: %LocalAppData%\.ptautocad_module\hotkeys.json"/>
+
+                        <CheckBox x:Name="chkHotkeysEnabled" Content="Включить горячие клавиши" Margin="0,0,0,8"/>
+
+                        <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="120"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="60"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Клавиша входа в режим:" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <TextBox x:Name="txtModeTriggerKey" Grid.Column="1"
+                                     ToolTip="Кликните и нажмите клавишу (по умолчанию F11)"
+                                     PreviewKeyDown="HotkeyCapture_OnPreviewKeyDown"/>
+                            <TextBlock Grid.Column="2" Text="Таймаут, с:" VerticalAlignment="Center" Margin="16,0,8,0"/>
+                            <TextBox x:Name="txtHotkeyTimeout" Grid.Column="3" Text="8"/>
+                        </Grid>
+
+                        <TextBlock x:Name="lblHotkeyStatus" Margin="0,0,0,8" FontWeight="SemiBold"/>
+
+                        <TextBlock Text="Текущие привязки:" Margin="0,0,0,4"/>
+                        <ListBox x:Name="lstHotkeyBindings" Height="140" Margin="0,0,0,8"
+                                 DisplayMemberPath="Summary"
+                                 SelectionChanged="LstHotkeyBindings_OnSelectionChanged"/>
+
+                        <TextBlock Text="Редактор привязки:" Margin="0,0,0,4"/>
+                        <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="100"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <TextBlock Text="Клавиша:" VerticalAlignment="Center"/>
+                            <TextBox x:Name="txtBindingKey" Grid.Column="1" Margin="8,0,0,6"
+                                     ToolTip="Кликните и нажмите клавишу (1, 2, B, …)"
+                                     PreviewKeyDown="HotkeyCapture_OnPreviewKeyDown"/>
+                            <TextBlock Grid.Row="1" Text="Список:" VerticalAlignment="Center"/>
+                            <ComboBox x:Name="cmbHotkeyCategory" Grid.Row="1" Grid.Column="1" Margin="8,0,0,6"
+                                      SelectionChanged="CmbHotkeyCategory_OnSelectionChanged">
+                                <ComboBoxItem Content="Тип объекта" IsSelected="True"/>
+                                <ComboBoxItem Content="Форма"/>
+                            </ComboBox>
+                            <TextBlock Grid.Row="2" Text="Элемент:" VerticalAlignment="Center"/>
+                            <ComboBox x:Name="cmbHotkeyItem" Grid.Row="2" Grid.Column="1" Margin="8,0,0,0"/>
+                        </Grid>
+
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                            <Button Content="Добавить / обновить" Padding="10,4" Margin="0,0,6,0"
+                                    Click="BtnAddHotkeyBinding_OnClick"/>
+                            <Button Content="Удалить" Padding="10,4" Margin="0,0,6,0"
+                                    Click="BtnRemoveHotkeyBinding_OnClick"/>
+                            <Button Content="Сохранить" Padding="10,4" Margin="0,0,6,0"
+                                    Click="BtnSaveHotkeys_OnClick"/>
+                            <Button Content="Отменить изменения" Padding="10,4"
+                                    Click="BtnReloadHotkeys_OnClick"/>
+                        </StackPanel>
+                    </StackPanel>
+                </ScrollViewer>
             </TabItem>
 
             <TabItem Header="Расставить извещатели">

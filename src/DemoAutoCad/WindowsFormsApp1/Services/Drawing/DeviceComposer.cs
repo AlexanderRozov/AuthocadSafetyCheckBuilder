@@ -24,12 +24,10 @@ namespace Demo.Services.Drawing
 
             var shapeHalfHeight = ShapeDrawer.GetShapeHalfHeight(request.BlockTemplate, request.DetectorRadius);
             var idOffsetY = shapeHalfHeight + PtLayoutConstants.IdTextOffsetY;
+            var innerBounds = ShapeDrawer.GetShapeInnerBounds(request.BlockTemplate, request.DetectorRadius);
 
-            var labelId = AnnotationDrawer.DrawMText(
-                tr, ms, center,
-                request.Label,
-                fontSize,
-                AttachmentPoint.MiddleCenter);
+            var labelId = LabelTextFitter.DrawInsideLabel(
+                tr, ms, center, request.Label, fontSize, innerBounds);
 
             var idPosition = new Point3d(center.X, center.Y - idOffsetY, 0);
 

@@ -250,8 +250,7 @@ namespace Demo.Services
                 if (!obj.LabelTextId.IsNull && HandleHelper.IsValid(tr, obj.LabelTextId))
                 {
                     var label = (MText)tr.GetObject(obj.LabelTextId, OpenMode.ForWrite);
-                    label.Contents = obj.Label ?? string.Empty;
-                    label.TextHeight = obj.FontSize;
+                    DrawingService.FitInsideLabel(tr, label, obj.Label, obj.FontSize, obj);
                 }
 
                 if (!obj.IdTextId.IsNull && HandleHelper.IsValid(tr, obj.IdTextId))

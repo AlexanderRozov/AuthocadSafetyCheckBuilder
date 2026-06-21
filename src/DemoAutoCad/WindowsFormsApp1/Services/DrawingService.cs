@@ -43,6 +43,18 @@ namespace Demo.Services
                 : PtLayoutConstants.RectangleHeight / 2;
         }
 
+        public static void FitInsideLabel(
+            Transaction tr,
+            MText label,
+            string text,
+            double preferredHeight,
+            PtObject obj)
+        {
+            var template = BlockCatalog.GetById(obj?.ShapeId);
+            var innerBounds = Drawing.ShapeDrawer.GetShapeInnerBounds(tr, template, obj?.EntityId ?? ObjectId.Null);
+            Drawing.LabelTextFitter.ApplyFit(label, text, preferredHeight, innerBounds);
+        }
+
         public static ObjectId DrawDeviceShape(
             Transaction tr,
             Database db,

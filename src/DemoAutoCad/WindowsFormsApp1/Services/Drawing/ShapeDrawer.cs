@@ -5,6 +5,23 @@ using System;
 
 namespace Demo.Services.Drawing
 {
+    internal readonly struct ShapeInnerBounds
+    {
+        public ShapeInnerBounds(double halfWidth, double halfHeight, double paddingFactor = 0.9)
+        {
+            HalfWidth = halfWidth;
+            HalfHeight = halfHeight;
+            PaddingFactor = paddingFactor;
+        }
+
+        public double HalfWidth { get; }
+        public double HalfHeight { get; }
+        public double PaddingFactor { get; }
+
+        public double InnerWidth => HalfWidth * 2 * PaddingFactor;
+        public double InnerHeight => HalfHeight * 2 * PaddingFactor;
+    }
+
     internal static class ShapeDrawer
     {
         public static ObjectId DrawRectangle(
@@ -99,6 +116,75 @@ namespace Demo.Services.Drawing
                 default:
                     return DrawRectangle(tr, ms, center, width, height);
             }
+        }
+
+        public static ShapeInnerBounds GetShapeInnerBounds(
+            BlockTemplate template,
+            double? customRadius = null)
+        {
+            if (template?.IsPrecreatedObject == true && template.ShapeHalfHeight > 0)
+            {
+                var halfHeight = template.ShapeHalfHeight;
+                var aspect = PtLayoutConstants.RectangleWidth / PtLayoutConstants.RectangleHeight;
+                return new ShapeInnerBounds(halfHeight * aspect, halfHeight);
+            }
+
+            if (customRadius.HasValue &&
+                (template?.ShapeType ?? DeviceShapeType.Rectangle) == DeviceShapeType.Circle)
+            {
+                var inscribed = customRadius.Value / Math.Sqrt(2);
+                return new ShapeInnerBounds(inscribed, inscribed);
+            }
+
+            var width = PtLayoutConstants.RectangleWidth;
+            var height = PtLayoutConstants.RectangleHeight;
+            var shapeType = template?.ShapeType ?? DeviceShapeType.Rectangle;
+
+            switch (shapeType)
+            {
+                case DeviceShapeType.Square:
+                case DeviceShapeType.Circle:
+                    var side = Math.Min(width, height);
+                    var half = side / 2;
+                    if (shapeType == DeviceShapeType.Circle)
+                    {
+                        var inscribed = half / Math.Sqrt(2);
+                        return new ShapeInnerBounds(inscribed, inscribed);
+                    }
+
+                    return new ShapeInnerBounds(half, half);
+                case DeviceShapeType.Triangle:
+                    return new ShapeInnerBounds(width / 2 * 0.75, height / 2 * 0.55);
+                case DeviceShapeType.Diamond:
+                    return new ShapeInnerBounds(width / 2 * 0.65, height / 2 * 0.65);
+                default:
+                    return new ShapeInnerBounds(width / 2, height / 2);
+            }
+        }
+
+        public static ShapeInnerBounds GetShapeInnerBounds(
+            Transaction tr,
+            BlockTemplate template,
+            ObjectId entityId,
+            double? customRadius = null)
+        {
+            if (!customRadius.HasValue &&
+                (template?.ShapeType ?? DeviceShapeType.Rectangle) == DeviceShapeType.Circle &&
+                !entityId.IsNull)
+            {
+                try
+                {
+                    var circle = tr.GetObject(entityId, OpenMode.ForRead) as Circle;
+                    if (circle != null)
+                        customRadius = circle.Radius;
+                }
+                catch
+                {
+                    // ignore
+                }
+            }
+
+            return GetShapeInnerBounds(template, customRadius);
         }
 
         public static double GetShapeHalfHeight(BlockTemplate template, double? customRadius = null)

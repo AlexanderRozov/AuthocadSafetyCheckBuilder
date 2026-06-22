@@ -12,17 +12,45 @@
     <ImplicitUsings>disable</ImplicitUsings>
     <Deterministic>true</Deterministic>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <Configurations>Debug-2022;Release-2022;Debug-2023;Release-2023</Configurations>
+    <Platforms>AnyCPU</Platforms>
+    <OutputPath>bin\$(Configuration)\</OutputPath>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+  <PropertyGroup Condition="$(Configuration.EndsWith('-2022'))">
+    <AutoCadVersion>2022</AutoCadVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition="$(Configuration.EndsWith('-2023'))">
+    <AutoCadVersion>2023</AutoCadVersion>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <AutoCadDir>$(ProgramFiles)\Autodesk\AutoCAD $(AutoCadVersion)</AutoCadDir>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug-2022|AnyCPU'">
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
   </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release-2022|AnyCPU'">
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug-2023|AnyCPU'">
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release-2023|AnyCPU'">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+  </PropertyGroup>
+
+  <Target Name="ValidateAutoCadInstall" BeforeTargets="ResolveAssemblyReferences">
+    <Error Condition="'$(AutoCadVersion)' == ''"
+           Text="Unknown configuration '$(Configuration)'. Use Debug-2022, Release-2022, Debug-2023, or Release-2023." />
+    <Error Condition="!Exists('$(AutoCadDir)\accoremgd.dll')"
+           Text="AutoCAD $(AutoCadVersion) not found at $(AutoCadDir)" />
+  </Target>
 
   <ItemGroup>
     <Compile Remove="database\**" />
@@ -33,15 +61,15 @@
 
   <ItemGroup>
     <Reference Include="accoremgd">
-      <HintPath>..\..\..\..\Program Files\Autodesk\AutoCAD 2022\accoremgd.dll</HintPath>
+      <HintPath>$(AutoCadDir)\accoremgd.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="acdbmgd">
-      <HintPath>..\..\..\..\Program Files\Autodesk\AutoCAD 2022\acdbmgd.dll</HintPath>
+      <HintPath>$(AutoCadDir)\acdbmgd.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="acmgd">
-      <HintPath>..\..\..\..\Program Files\Autodesk\AutoCAD 2022\acmgd.dll</HintPath>
+      <HintPath>$(AutoCadDir)\acmgd.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="System.Drawing" />

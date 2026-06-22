@@ -65,9 +65,9 @@ namespace Pt.Services
                 var table = (Table)tr.GetObject(session.TableId, OpenMode.ForWrite);
 
                 if (table.Columns.Count < 2)
-                    AddFirstDataColumn(table, request, columnNumber, fdNumber);
+                    AddFirstDataColumn(tr, db, table, request, columnNumber, fdNumber);
                 else
-                    AppendTableColumn(table, request, columnNumber, fdNumber);
+                    AppendTableColumn(tr, db, table, request, columnNumber, fdNumber);
 
                 var center = request.InsertionPoint;
                 ptObject = DrawingService.DrawDevice(
@@ -210,11 +210,13 @@ namespace Pt.Services
                     var fdNumber = PtLayoutConstants.FirstFdNumber + i;
                     obj.FdCode = $"FD-{fdNumber:D4}";
                     obj.JsCode = $"JS05-UC-{1000 + obj.ColumnNumber}A";
-                    FillDataColumnFromObject(table, colIndex, obj);
+                    PtTableLayout.FillDataColumnFromObject(table, tr, db, colIndex, obj);
                 }
 
                 session.DeviceCount = objects.Count;
-                StyleTable(table);
+                PtTableLayout.ConfigureRowHeights(table);
+                PtTableLayout.SetLabelColumn(table);
+                PtTableLayout.StyleTable(table);
                 tr.Commit();
             }
 
@@ -235,15 +237,8 @@ namespace Pt.Services
                     var col = obj.ColumnIndex;
                     if (col > 0 && col < table.Columns.Count)
                     {
-                        table.Cells[0, col].TextString = obj.ColumnNumber.ToString();
-                        table.Cells[1, col].TextString = obj.FdCode ?? string.Empty;
-                        table.Cells[2, col].TextString = obj.JsCode ?? string.Empty;
-                        table.Cells[3, col].TextString = obj.Code ?? string.Empty;
-                        table.Cells[4, col].TextString = obj.Number ?? string.Empty;
-                        table.Cells[5, col].TextString = obj.FullName ?? string.Empty;
-                        if (table.Rows.Count > 6)
-                            table.Cells[6, col].TextString = PtObjectRepository.GetBlockName(obj);
-                        StyleColumnCells(table, col);
+                        PtTableLayout.FillDataColumnFromObject(table, tr, db, col, obj);
+                        PtTableLayout.StyleColumnCells(table, col);
                     }
                 }
 
@@ -280,27 +275,31 @@ namespace Pt.Services
             table.Position = origin;
             table.SetSize(PtLayoutConstants.TableRowCount, 1);
 
-            for (var row = 0; row < PtLayoutConstants.TableRowCount; row++)
-                table.Rows[row].Height = PtLayoutConstants.RowHeight;
-
+            PtTableLayout.ConfigureRowHeights(table);
             table.Columns[0].Width = PtLayoutConstants.LabelColumnWidth;
-            SetLabelCells(table);
-            StyleTable(table);
+            PtTableLayout.SetLabelColumn(table);
+            PtTableLayout.StyleTable(table);
             return table;
         }
 
         private static void AddFirstDataColumn(
+            Transaction tr,
+            Database db,
             Table table,
             PlaceDeviceRequest request,
             int columnNumber,
             int fdNumber)
         {
             table.InsertColumns(1, PtLayoutConstants.DataColumnWidth, 1);
-            FillDataColumn(table, 1, request, columnNumber, fdNumber);
-            StyleTable(table);
+            FillDataColumn(tr, db, table, 1, request, columnNumber, fdNumber);
+            PtTableLayout.ConfigureRowHeights(table);
+            PtTableLayout.SetLabelColumn(table);
+            PtTableLayout.StyleTable(table);
         }
 
         private static void AppendTableColumn(
+            Transaction tr,
+            Database db,
             Table table,
             PlaceDeviceRequest request,
             int columnNumber,
@@ -308,74 +307,31 @@ namespace Pt.Services
         {
             var newColIndex = table.Columns.Count;
             table.InsertColumns(newColIndex, PtLayoutConstants.DataColumnWidth, 1);
-            FillDataColumn(table, newColIndex, request, columnNumber, fdNumber);
-            StyleTable(table);
-        }
-
-        private static void SetLabelCells(Table table)
-        {
-            table.Cells[0, 0].TextString = "Узел В";
-            table.Cells[1, 0].TextString = string.Empty;
-            table.Cells[2, 0].TextString = string.Empty;
-            table.Cells[3, 0].TextString = "Код";
-            table.Cells[4, 0].TextString = "Номер";
-            table.Cells[5, 0].TextString = "Наименование";
-            table.Cells[6, 0].TextString = "Блок";
+            FillDataColumn(tr, db, table, newColIndex, request, columnNumber, fdNumber);
+            PtTableLayout.ConfigureRowHeights(table);
+            PtTableLayout.StyleTable(table);
         }
 
         private static void FillDataColumn(
+            Transaction tr,
+            Database db,
             Table table,
             int col,
             PlaceDeviceRequest request,
             int columnNumber,
             int fdNumber)
         {
-            table.Cells[0, col].TextString = columnNumber.ToString();
-            table.Cells[1, col].TextString = $"FD-{fdNumber:D4}";
-            table.Cells[2, col].TextString = $"JS05-UC-{1000 + columnNumber}A";
-            table.Cells[3, col].TextString = request.DeviceType.Code;
-            table.Cells[4, col].TextString = request.Number;
-            table.Cells[5, col].TextString = request.DeviceType.Name;
-            if (table.Rows.Count > 6)
-            {
-                var blockName = request.BlockGroupId.HasValue
-                    ? PtBlockRepository.Get(request.BlockGroupId.Value)?.Name ?? string.Empty
-                    : string.Empty;
-                table.Cells[6, col].TextString = blockName;
-            }
-        }
-
-        private static void FillDataColumnFromObject(Table table, int col, PtObject obj)
-        {
-            table.Cells[0, col].TextString = obj.ColumnNumber.ToString();
-            table.Cells[1, col].TextString = obj.FdCode ?? string.Empty;
-            table.Cells[2, col].TextString = obj.JsCode ?? string.Empty;
-            table.Cells[3, col].TextString = obj.Code ?? string.Empty;
-            table.Cells[4, col].TextString = obj.Number ?? string.Empty;
-            table.Cells[5, col].TextString = obj.FullName ?? string.Empty;
-            if (table.Rows.Count > 6)
-                table.Cells[6, col].TextString = PtObjectRepository.GetBlockName(obj);
-        }
-
-        private static void StyleTable(Table table)
-        {
-            for (var row = 0; row < table.Rows.Count; row++)
-            {
-                for (var col = 0; col < table.Columns.Count; col++)
-                    ApplyCellStyle(table.Cells[row, col]);
-            }
-        }
-
-        private static void ApplyCellStyle(Cell cell)
-        {
-            cell.TextHeight = PtLayoutConstants.TableTextHeight;
-            cell.Alignment = CellAlignment.MiddleCenter;
-        }
-
-        private static void StyleColumnCells(Table table, int col)
-        {
-            for (var row = 0; row < table.Rows.Count; row++)
-                ApplyCellStyle(table.Cells[row, col]);
+            PtTableLayout.FillDataColumn(
+                table,
+                tr,
+                db,
+                col,
+                columnNumber,
+                fdNumber,
+                request.DeviceType.Code,
+                request.Number,
+                request.DeviceType.Name,
+                request.BlockTemplate);
         }
     }
 }

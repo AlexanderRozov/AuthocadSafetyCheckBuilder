@@ -7,14 +7,20 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Demo", "WindowsFormsApp1\De
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
-		Debug|Any CPU = Debug|Any CPU
-		Release|Any CPU = Release|Any CPU
+		Debug-2022|Any CPU = Debug-2022|Any CPU
+		Release-2022|Any CPU = Release-2022|Any CPU
+		Debug-2023|Any CPU = Debug-2023|Any CPU
+		Release-2023|Any CPU = Release-2023|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{B26CFEDB-1042-470F-AE83-6AF82B45A2C2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{B26CFEDB-1042-470F-AE83-6AF82B45A2C2}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{B26CFEDB-1042-470F-AE83-6AF82B45A2C2}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{B26CFEDB-1042-470F-AE83-6AF82B45A2C2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B26CFEDB-1042-470F-AE83-6AF82B45A2C2}.Debug-2022|Any CPU.ActiveCfg = Debug-2022|Any CPU
+		{B26CFEDB-1042-470F-AE83-6AF82B45A2C2}.Debug-2022|Any CPU.Build.0 = Debug-2022|Any CPU
+		{B26CFEDB-1042-470F-AE83-6AF82B45A2C2}.Release-2022|Any CPU.ActiveCfg = Release-2022|Any CPU
+		{B26CFEDB-1042-470F-AE83-6AF82B45A2C2}.Release-2022|Any CPU.Build.0 = Release-2022|Any CPU
+		{B26CFEDB-1042-470F-AE83-6AF82B45A2C2}.Debug-2023|Any CPU.ActiveCfg = Debug-2023|Any CPU
+		{B26CFEDB-1042-470F-AE83-6AF82B45A2C2}.Debug-2023|Any CPU.Build.0 = Debug-2023|Any CPU
+		{B26CFEDB-1042-470F-AE83-6AF82B45A2C2}.Release-2023|Any CPU.ActiveCfg = Release-2023|Any CPU
+		{B26CFEDB-1042-470F-AE83-6AF82B45A2C2}.Release-2023|Any CPU.Build.0 = Release-2023|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
